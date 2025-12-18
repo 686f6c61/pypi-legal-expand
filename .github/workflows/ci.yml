@@ -1,0 +1,68 @@
+# legal-expand - GitHub Action para CI (tests automaticos)
+#
+# @author https://github.com/686f6c61
+# @repository https://github.com/686f6c61/pypi-legal-expand
+# @license MIT
+# @date 12/2025
+#
+# Este workflow ejecuta los tests automaticamente en cada push y PR.
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+          pip install -e .
+
+      - name: Run tests with coverage
+        run: pytest tests/ -v --cov=legal_expand --cov-report=term-missing
+
+      - name: Check package builds correctly
+        run: |
+          pip install build
+          python -m build
+
+  lint:
+    name: Code quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install linters
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit
+
+      - name: Security check with Bandit
+        run: bandit -r src/legal_expand -ll

@@ -1,0 +1,657 @@
+# Listado de Siglas Legales Españolas
+# legal-expand v1.0.0
+# Total: 646 siglas
+# Fuentes: RAE, BOE, DPEJ
+# Repositorio: https://github.com/686f6c61/pypi-legal-expand
+
+# Formato: SIGLA → Significado
+# ============================================================================
+
+ABE → Autoridad Bancaria Europea
+ACNUR → Alto Comisionado de las Naciones Unidas para los Refugiados
+ADIF → Administrador de Infraestructuras Ferroviarias
+AEAT → Agencia Estatal de Administración Tributaria
+AECID → Agencia Española de Cooperación Internacional para el Desarrollo
+AECOSAN → Agencia Española de Consumo, Seguridad Alimentaria y Nutrición
+AELC → Asociación Europea de Libre Comercio
+AEMET → Agencia Estatal de Meteorología
+AEMPS → Agencia Española de Medicamentos y Productos Sanitarios
+AENA → Aeropuertos Españoles y Navegación Aérea
+AENOR → Asociación Española de Normalización y Certificación
+AEPD → Agencia Española de Protección de Datos
+AEPSJ → Autoridad Europea de Seguros y Pensiones para la Jubilación
+AES → Acuerdo Económico y Social
+AESA → Agencia Estatal de Seguridad Aérea
+AESF → Agencia Estatal de Seguridad Ferroviaria
+AEVM → Autoridad Europea de Valores y Mercados
+AGA → Archivo General de la Administración
+AGE → Administración General del Estado
+AIE → Agrupación de interés económico
+AIEA → Agencia Internacional de la Energía Atómica
+AJD → Actos Jurídicos Documentados
+AMI → Acuerdo marco interconfederal
+AN → Audiencia Nacional
+AP → Audiencia Provincial
+APD → Agencia de Protección de Datos
+APIC → Arbitrio sobre la Producción e Importación en las islas Canarias
+ASEC → Acuerdo de solución extrajudicial de conflictos
+AT/EP → Accidente de trabajo/Enfermedad profesional
+ATC → auto del Tribunal Constitucional
+ATJUE → auto del Tribunal de Justicia de la Unión Europea
+ATS → auto del Tribunal Supremo
+ATSJ → auto de tribunal superior de justicia
+AUE → Acta Única Europea
+BCE → Banco Central Europeo
+BEI → Banco Europeo de Inversiones
+BERD → Banco Europeo de Reconstrucción y Desarrollo
+BIRD → Banco Internacional de Reconstrucción y Desarrollo
+BIRF → Banco Internacional de Reconstrucción y Fomento
+BOCG → Boletín Oficial de las Cortes Generales
+BOE → Boletín Oficial del Estado
+BOICAC → Boletín Oficial del Instituto de Contabilidad y Auditoría de Cuentas
+BOP → Boletín Oficial de la Provincia
+BOPI → Boletín Oficial de la Propiedad Industrial
+BORME → Boletín Oficial del Registro Mercantil
+BPI → Banco de Pagos Internacionales
+CAE → Código de actividad y del establecimiento
+CC → Código Civil
+CC.AA. → Comunidades Autónomas
+CCEO → Codex Canonum Ecclesiarum Orientalum
+CCirc → Código de la Circulación
+CCom → Código de Comercio
+CCom./CCo. → Código de Comercio
+CE → Constitución Española
+CEAL → Carta Europea de Autonomía Local, de 18 de octubre de 1985
+CEC → Centro de Estudios Constitucionales
+CECA → Comunidad Europea del Carbón y del Acero
+CEDH → Convenio para la Protección de los Derechos Humanos y Libertades Fundamentales
+CEE → Comunidad Económica Europea
+CEEA → Comunidad Europea de la Energía Atómica
+CEF → Comité Económico y Financiero
+CEN → Comité Europeo de Normalización
+CENELEC → Comité Europeo de Normalización Electrotécnica
+CEOE → Confederación Española de Organizaciones Empresariales
+CEPC → Centro de Estudios Políticos y Constitucionales
+CES → Consejo Económico y Social
+CESE → Comité Económico y Social Europeo
+CESEDEN → Centro Superior de Estudios de la Defensa Nacional
+CEur → Constitución Europea
+CGAE → Consejo General de la Abogacía Española
+CGC → Comisión General de Codificación
+CGPJ → Consejo General del Poder Judicial
+CIC → Codex Iuris Canonici
+CIDEF → Centro de Información de la Defensa
+CIJ → Corte Internacional de Justicia
+CJM → Código de Justicia Militar
+CNI → Centro Nacional de Inteligencia
+CNMC → Comisión Nacional de los Mercados y de la Competencia
+CNMV → Comisión Nacional del Mercado de Valores
+CNUDMI → Comisión de las Naciones Unidas para el Derecho Mercantil Internacional
+COREPER → Comité de Representantes Permanentes
+CP → Código Penal
+CP 1973 → Código Penal
+CPM → Código Penal Militar
+CPM 1985 → Código Penal Militar
+CR → Convenio de Roma
+CSIC → Consejo Superior de Investigaciones Científicas
+CTU → Contribución Territorial Urbana
+CVDT → Convención de Viena sobre el Derecho de los Tratados
+DA → disposición adicional
+DD → disposición derogatoria
+DF → disposición final
+DFUE → Carta de Derechos Fundamentales de la Unión Europea
+DGCHT → Dirección General de Coordinación de las Haciendas Territoriales
+DGRN → Dirección General de los Registros y del Notariado
+DGSFP → Dirección General de Seguros y Fondos de Pensiones
+DGT → Dirección General de Tributos
+DGTPF → Dirección General del Tesoro y Política Financiera
+DLeg → decreto legislativo
+DLey → decreto ley
+DNI → Documento Nacional de Identidad
+DOCE → Diario Oficial de las Comunidades Europeas
+DOUE → Diario Oficial de la Unión Europea
+DP → Defensor del Pueblo
+DS → Directiva de Servicios
+DSC → Diario de Sesiones del Congreso
+DSCC → Diario de Sesiones de Cortes Constituyentes
+DSS → Diario de Sesiones del Senado
+DT → disposición transitoria
+DUDH → Declaración Universal de los Derechos Humanos
+EAA → Estatuto de Autonomía para Andalucía
+EAAR → Estatuto de Autonomía de Aragón
+EAAS → Estatuto de Autonomía de Asturias
+EAC → Estatuto de Autonomía de Cataluña
+EACAN → Estatuto de Autonomía de Canarias
+EACANT → Estatuto de Autonomía de Cantabria
+EACE → Estatuto de Autonomía de Ceuta
+EACLM → Estatuto de Autonomía de Castilla-La Mancha
+EACM → Estatuto de Autonomía de la Comunidad de Madrid
+EACV → Estatuto de Autonomía de la Comunidad Valenciana
+EACYL → Estatuto de Autonomía de Castilla y León
+EAEX → Estatuto de Autonomía de la Comunidad Autónoma de Extremadura
+EAG → Estatuto de Autonomía de Galicia
+EAIB → Estatuto de Autonomía de las Illes Balears
+EAME → Estatuto de Autonomía de Melilla
+EAMU → Estatuto de Autonomía de Murcia
+EAPV → Estatuto de Autonomía del País Vasco
+EAR → Estatuto de Autonomía de La Rioja
+EASA → Agencia Europea de Seguridad Aérea
+EBEP → Estatuto Básico del Empleado Público
+ECOFIN → Consejo de Asuntos Económicos y Financieros
+ECOSOC → Consejo Económico y Social de las Naciones Unidas
+EE. GG. → entidades gestoras
+EE. LL. → entidades locales
+EEES → Espacio Europeo de Educación Superior
+EFSA → Autoridad Europea de Seguridad Alimentaria
+EM → exposición de motivos
+EMACON → Estado Mayor Conjunto de la Defensa
+EMAD → Estado Mayor de la Defensa
+EMF → Ley del Estatuto Orgánico del Ministerio Fiscal
+ENAC → Entidad Nacional de Acreditación
+EPI → Estatuto de la Propiedad Industrial
+ERE → Expediente de regulación de empleo
+ET → Estatuto de los Trabajadores
+ETT → Empresa de trabajo temporal
+ETVE → Entidad de tenencia de valores extranjeros
+EURORAI → Organización Europea de las Instituciones Regionales de Control Externo del Sector Público
+EUROSAI → Organización de Entidades Fiscalizadoras Superiores de Europa
+EVI → Equipo de Valoración de Incapacidades
+Excmo. → Excelentísimo
+FAO → Organización de las Naciones Unidas para la Alimentación y la Agricultura
+FC → Fondo de Cohesión
+FCI → fondo de compensación interterritorial
+FCRE → Fondo de Capital Riesgo Europeo
+FEADER → Fondo Europeo Agrícola de Desarrollo Rural
+FEAGA → Fondo Europeo Agrícola de Garantía
+FEDER → Fondo Europeo de Desarrollo Regional
+FEGA → Fondo Español de Garantía Agraria
+FEMP → Fondo Europeo Marítimo y de Pesca
+FEOGA → Fondo Europeo de Orientación y Garantía Agrícola
+FESE → Fondo de Emprendimiento Social Europeo
+FFAA → fuerzas armadas
+FGD → Fondo de Garantía de Depósitos
+FGI → Fondo de Garantía de Inversiones
+FIDA → Fondo Internacional de Desarrollo Agrícola
+FJ → fundamento jurídico
+FMI → Fondo Monetario Internacional
+FNMT → Fábrica Nacional de Moneda y Timbre
+FOGASA → Fondo de Garantía Salarial
+FROB → Fondo de Reestructuración Ordenada Bancaria
+FSE → Fondo Social Europeo
+GATT → Acuerdo General sobre Aranceles Aduaneros y Comercio
+I+D → Investigación y desarrollo
+I+D+i → Investigación, desarrollo e innovación tecnológica
+IAE → Impuesto sobre Actividades Económicas
+IATA → Asociación Internacional de Transporte Aéreo
+IBI → Impuesto sobre Bienes Inmuebles
+ICAC → Instituto de Contabilidad y Auditoría de Cuentas
+ICIO → Impuesto sobre Construcciones, Instalaciones y Obras
+IEPPF → Impuesto Extraordinario sobre el Patrimonio de las Personas Físicas
+IGAE → Intervención General de la Administración del Estado
+IGIC → Impuesto General Indirecto Canario
+IGTE → Impuesto General sobre el Tráfico de las Empresas
+II.EE. → Impuestos Especiales
+IIVTNU → Impuesto sobre el Incremento del Valor de los Terrenos de Naturaleza Urbana
+IIVTNU/plusvalía/plusvalía municipal → Impuesto sobre el incremento de valor de los terrenos de naturaleza urbana
+ILT → Incapacidad laboral transitoria
+IMIVT → Impuesto Municipal sobre el Incremento del Valor de los Terrenos
+IMSERSO → Instituto de Migraciones y Servicios Sociales
+INAP → Instituto Nacional de Administración Pública
+INC → Instituto Nacional del Consumo
+INE → Instituto Nacional de Estadística
+INEE → Instituto Nacional de Evaluación Educativa
+INEM → Instituto Nacional de Empleo
+INGESA → Instituto de Gestión Sanitaria
+INI → Instituto Nacional de Industria
+INSALUD → Instituto Nacional de la Salud
+INSERSO → Instituto Nacional de Servicios Sociales
+INSHT → Instituto Nacional de Seguridad e Higiene en el Trabajo
+INSS → Instituto Nacional de la Seguridad Social
+IP → impuesto sobre el patrimonio
+IPC → índice de precios de consumo
+IRNR → Impuesto sobre la Renta de no Residentes
+IRPF → Impuesto sobre la Renta de las Personas Físicas
+IRYDA → Instituto de Reforma y Desarrollo Agrario
+IS → Impuesto sobre Sociedades
+ISD → Impuesto sobre Sucesiones y Donaciones
+ISFAS → Instituto Social de las Fuerzas Armadas
+ISM → Instituto Social de la Mari na
+ISO → Organización Internacional de Normalización
+IT → Incapacidad temporal
+ITP → impuesto sobre transmisiones patrimoniales
+ITP y AJD → Impuesto sobre Transmisiones Patrimoniales y Actos Jurídicos Documentados
+IVA → Impuesto sobre el Valor Añadido
+IVTM → Iimpuesto sobre vehículos de tracción mecánica
+Ilmo. → ilustrísimo
+JCCA → Junta Consultiva de Contratación Administrativa del Estado
+LA → Ley de Aguas
+LABE → Ley de Autonomía del Banco de España
+LAC → Ley de Auditoría de Cuentas
+LAC 1988 → Ley de Auditoría de Cuentas
+LAECSP → Ley de Acceso Electrónico de los Ciudadanos a los Servicios Públicos
+LAIE → Ley de Agrupaciones de Interés Económico
+LAP → Ley reguladora de la Autonomía del Paciente
+LAR → Ley de Arrendamientos Rústicos
+LARH → Ley de Arrendamientos Rústicos Históricos
+LAU → Ley de Arrendamientos Urbanos
+LBRL → Ley reguladora de las Bases del Régimen Local
+LBRL → Ley 7/1985, de 2 de abril, reguladora de las Bases de Régimen Local
+LBRL/LRBRL → Ley 7/1985, de 2 de abril, reguladora de las Bases de Régimen Local
+LBSS → Ley de Bases de la Seguridad Social
+LC → Ley de Costas
+LCA → Ley sobre Contrato de Agencia
+LCAFB → Ley de Cajas de Ahorros y Fundaciones Bancarias
+LCAP → Ley de Contratos de las Administraciones Públicas
+LCAPA → Ley de Calidad del Aire y Protección de la Atmósfera
+LCCH → Ley Cambiaria y del Cheque
+LCCR → Ley de Cooperativas de Crédito
+LCCSNS → Ley de Cohesión y Calidad del Sistema Nacional de Salud
+LCD → Ley de Competencia Desleal
+LCENFFS → Ley de Conservación de los Espacios Naturales y de la Flora y Fauna Silvestres
+LCGC → Ley de Condiciones Generales de la Contratación
+LCJIMC → Ley de Cooperación Jurídica Internacional en Materia Civil
+LCO → Ley de Crédito Oficial
+LCP → Ley de Colegios Profesionales
+LCPE → Ley de Clases Pasivas del Estado
+LCREM → Ley de Capitalidad y de Régimen Especial de Madrid
+LCS → Ley del Contrato de Seguro
+LCSP → Ley de Contratos del Sector Público
+LCT → Ley del Contrato de Trabajo
+LCVFL → Ley de conciliación de la vida familiar y laboral de las personas trabajadoras
+LCa → Ley de Carreteras
+LCon → Ley Concursal
+LCoop → Ley de Cooperativas
+LCz → Ley de Caza
+LD → Ley del Deporte
+LDA → Ley Orgánica del Derecho a la Asociación
+LDC → Ley de Defensa de la Competencia
+LDEE → Ley de Desindexación de la Economía Española
+LDGC → Ley de Derechos y Garantías de los Contribuyentes
+LDIC → Ley sobre derechos de información y consulta de los trabajadores en las empresas y grupos de empresas de dimensión comunitaria
+LDIEC → Ley de Disciplina e Intervención de Entidades de Crédito
+LDPD → Ley de responsabilidad civil por los daños causados por productos defectuosos
+LDYPJ → Ley de Demarcación y Planta Judicial
+LE → Ley de Empleo
+LEADER → Relaciones entre Actividades de Desarrollo de la Economía Rural
+LEC → Ley de Enjuiciamiento Civil
+LEC 1881 → Ley de Enjuiciamiento Civil
+LECiv → Ley de Enjuiciamiento Civil
+LECrim. → Ley de Enjuiciamiento Criminal
+LEF → Ley de Expropiación Forzosa
+LEFFE → Ley de Fomento de la Financiación Empresarial
+LEGUM → Ley de Garantía de la Unidad de Mercado
+LEOMF → Ley del Estatuto Orgánico del Ministerio Fiscal
+LEP → Ley de Extradición Pasiva
+LES → Ley 2/2011, de 4 de marzo, de Economía Sostenible
+LETT → Ley de las Empresas de Trabajo Temporal
+LEVD → Ley del Estatuto de la Víctima del Delito
+LF → Ley de Fundaciones
+LFCA → Ley de Financiación de las Comunidades Autónomas
+LFCE → Ley de Funcionarios Civiles del Estado
+LFE → Ley de Firma Electrónica
+LFN → Ley de Protección de las Familias Numerosas
+LFPP → Texto Refundido de la Ley de Regulación de los Fondos y Planes de Pensiones
+LG → Ley del Gobierno
+LGDCU → Ley General para la Defensa de los Consumidores y Usuarios
+LGEP → Real Decreto Legislativo 2/2007, de 28 de diciembre, por el que se aprueba el texto refundido de la Ley General de Estabilidad Presupuestaria
+LGP → Ley General Presupuestaria
+LGP 1988 → Ley General Presupuestaria
+LGPub → Ley General de Publicidad
+LGSS → Ley General de la Seguridad Social
+LGSa → Ley General de Sanidad
+LGSu → Ley General de Subvenciones
+LGT → Ley General Tributaria
+LGT 1963 → Ley General Tributaria
+LGTEL → Ley General de Telecomunicaciones
+LH → Ley Hipotecaria
+LHL → Ley de Haciendas Locales
+LHMPSD → Ley de Hipoteca Mobiliaria y Prenda sin Desplazamiento de Posesión
+LHN → Ley de Hipoteca Naval
+LIIC → Ley de Instituciones de Inversión Colectiva
+LIP → Ley del Impuesto sobre el Patrimonio
+LIRNR → Ley del Impuesto sobre la Renta de los no Residentes
+LIRPF → Ley del Impuesto sobre la Renta de las Personas Físicas
+LIS → Ley del Impuesto sobre Sociedades
+LIS 1995 → Ley del Impuesto sobre Sociedades
+LISD → Ley del Impuesto sobre Sucesiones y Donaciones
+LISMI → Ley de Integración Social de los Minusválidos
+LISOS → Ley de Infracciones y Sanciones en el Orden Social
+LIT → Ley del Sistema de Inspección de Trabajo y Seguridad Social
+LITN → Ley sobre igualdad del hombre y la mujer en el orden de sucesión de los títulos nobiliarios
+LITP → Ley del impuesto sobre transmisiones patrimoniales y actos jurídicos documentados
+LIVA → Ley del Impuesto sobre el Valor Añadido
+LJCA → Ley de la Jurisdicción Contencioso-Administrativa
+LJCA 1956 → Ley de la Jurisdicción Contencioso-Administrativa
+LJV → Ley de la Jurisdicción Voluntaria
+LM → Ley de Marcas
+LMAD → Ley Especial del Municipio de Madrid
+LME → Ley de Modificaciones Estructurales de Sociedades Mercantiles
+LMH → Ley del Mercado Hipotecario
+LMI → Ley de Minas
+LMMGL → Ley de Medidas para la Modernización del Gobierno Local
+LMRFP → Ley de Medidas para la Reforma de la Función Pública
+LMV → Ley del Mercado de Valores
+LMo → Ley de Montes
+LN → Ley del Notariado
+LNA → Ley sobre Navegación Aérea
+LNM → Ley de Navegación Marítima
+LO → ley orgánica
+LOCE → Ley Orgánica del Consejo de Estado
+LOCJ → Ley Orgánica de Conflictos Jurisdiccionales
+LOCM → Ley de Ordenación del Comercio Minorista
+LOCOJM → Ley Orgánica de la Competencia y Organización de la Jurisdicción Militar
+LODE → Ley Orgánica del Derecho a la Educación
+LODEPE → Ley Orgánica del Derecho de Petición
+LODN → Ley Orgánica de la Defensa Nacional
+LODP → Ley Orgánica del Defensor del Pueblo
+LOE → Ley de Ordenación de la Edificación
+LOEPSF → Ley Orgánica de Estabilidad Presupuestaria y Sostenibilidad Financiera
+LOEX → Ley Orgánica sobre derechos y libertades de los extranjeros en España y su integración social
+LOFAGE → Ley de Organización y Funcionamiento de la Administración General del Estado
+LOFCA → Ley Orgánica de Financiación de las Comunidades Autónomas
+LOFCS → Ley Orgánica de Fuerzas y Cuerpos de Seguridad
+LOGP → Ley Orgánica General Penitenciaria
+LOGSE → Ley Orgánica General del Sistema Educativo
+LOHC → Ley Orgánica del Habeas Corpus
+LOI → Ley Orgánica para la Igualdad Efectiva de Mujeres y Hombres
+LOLR → Ley Orgánica de Libertad Religiosa
+LOLS → Ley Orgánica de Libertad Sindical
+LOMCE → Ley Orgánica para la Mejora de la Calidad Educativa
+LOPD → Ley Orgánica de Protección de Datos de Carácter Personal
+LOPJ → Ley Orgánica del Poder Judicial
+LOPP → Ley Orgánica de Partidos Políticos
+LOPSC → Ley Orgánica de Protección de la Seguridad Ciudadana
+LORAFNA → Ley Orgánica de Reintegración y Amejoramiento del Régimen Foral de Navarra
+LORCA → Ley de regulación de las Normas Básicas sobre Órganos Rectores de las Cajas de Ahorros
+LORDFA → Ley Orgánica de Régimen Disciplinario de las Fuerzas Armadas
+LOREG → Ley Orgánica del Régimen Electoral General
+LORPM → Ley Orgánica de la Responsabilidad Penal de los Menores
+LOSC → Ley Orgánica de Protección de la Seguridad Ciudadana
+LOSP → Ley de Ordenación del Seguro Privado
+LOSSEAR → Ley de ordenación, supervisión y solvencia de las entidades aseguradoras y reaseguradoras
+LOSSEC → Ley de Ordenación, Supervisión y Solvencia de Entidades de Crédito
+LOSSP → Ley de Ordenación y Supervisión de los Seguros Privados
+LOTC → Ley Orgánica del Tribunal Constitucional
+LOTCU → Ley Orgánica del Tribunal de Cuentas
+LOTJ → Ley Orgánica del Tribunal del Jurado
+LOTT → Ley de Ordenación de los Transportes Terrestres
+LOU → Ley Orgánica de Universidades
+LOVG → Ley Orgánica de Medidas de Protección Integral contra la Violencia de Género
+LP → Ley de Patentes
+LPA → Ley de Procedimiento Administrativo
+LPAC → Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas
+LPAC → Ley del Procedimiento Administrativo Común de las Administraciones Públicas
+LPACAP/LPAC → Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas
+LPAP → Ley de Patrimonio de las Administraciones Públicas
+LPCI → Ley para la salvaguardia del Patrimonio Cultural Inmaterial
+LPEMM → Ley de Puertos del Estado y de la Marina Mercante
+LPGE → Ley de Presupuestos Generales del Estado
+LPH → Ley de Propiedad Horizontal
+LPHE → Ley del Patrimonio Histórico Español
+LPHN → Ley del Plan Hidrológico Nacional
+LPI → Ley de Propiedad Intelectual
+LPJDF → Ley de Protección Jurisdiccional de los Derechos Fundamentales de la Persona
+LPL → Ley de Procedimiento Laboral
+LPM → Ley Procesal Militar
+LPN → Ley del Patrimonio Nacional
+LPND → Ley del Patrimonio Natural y de la Biodiversidad
+LPRL → Ley de Prevención de Riesgos Laborales
+LR → Ley de Normas Reguladoras de los Residuos
+LRC → Ley del Registro Civil
+LRC 1957 → Ley del Registro Civil
+LRCS → Ley sobre responsabilidad civil y seguro en la circulación de vehículos a motor
+LRJAE → Ley de Régimen Jurídico de la Administración del Estado
+LRJAP y PAC → Ley de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común
+LRJCA → Ley reguladora de la Jurisdicción Contencioso-Administrativo
+LRJPAC → Ley de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común
+LRJS → Ley reguladora de la Jurisdicción Social
+LRJSP → Ley de Régimen Jurídico del Sector Público
+LRSAL → Ley de Racionalización y Sostenibilidad de la Administración Local
+LRSC → Ley de Residuos y Suelos Contaminados
+LS → Ley del Suelo
+LSA → Ley de Sociedades Anónimas
+LSAN → Ley de Seguridad Alimentaria y Nutrición
+LSC → Ley de Sociedades de Capital
+LSF → Ley del Sector Ferroviario
+LSGR → Ley sobre el Régimen Jurídico de las Sociedades de Garantía Recíproca
+LSH → Ley de de Ordenación del Sector de Hidrocarburos
+LSLyP → Ley de Sociedades Laborales y Participadas
+LSN → Ley de Seguridad Nacional
+LSNPC → Ley del Sistema Nacional de Protección Civil
+LSP → Ley de Sociedades Profesionales
+LSPU → Ley del servicio postal universal, de los derechos de los usuarios y del mercado postal
+LSPU 1998 → Ley del Servicio Postal Universal y de Liberalización de los Servicios Postales
+LSRL → Ley de Sociedades de Responsabilidad Limitada
+LSSC → Ley de la Subcontratación en el Sector de la Construcción
+LSSI → Ley de Servicios de la Sociedad de la Información y de Comercio Electrónico
+LSV → Ley de Sanidad Vegetal
+LTH → Ley sobre régimen de sociedades y fondos de inversión inmobiliaria y sobre fondos de titulización hipotecaria
+LTPOAJD → Real Decreto Legislativo 1/1993, de 24 de septiembre, por el que se aprueba el Texto refundido de la Ley del Impuesto sobre Transmisiones Patrimoniales y Actos Jurídicos Documentados
+LTPP → Ley de Tasas y Precios Públicos
+LTSAS → Ley del Tercer Sector de Acción Social
+LTSV → Ley sobre Tráfico, Circulación de Vehículos a Motor y Seguridad Vial
+LV → Ley de Voluntariado
+LVBMAP → Ley de Venta de Bienes Muebles a Plazos
+LVP → Ley de Vías Pecuarias
+LVP 1974 → Ley de Vías Pecuarias
+LVV → Ley de la Viña y del Vino
+MF → ministerio fiscal
+MUFACE → Mutualidad General de Funcionarios Civiles del Estado
+MUGEJU → Mutualidad general judicial
+NIF → Número de Identificación Fiscal
+OACI → Organización de Aviación Civil Internacional
+OAR → Oficina de Asilo y Refugio
+OCDE → Organización para la Cooperación y el Desarrollo Económicos
+OCE → Organización de Cooperación Económica
+OCEX → Órgano de Control Externo de las Comunidades Autónomas
+OEPM → Oficina Española de Patentes y Marcas
+OGSHT → Ordenanza General de Seguridad e Higiene en el Trabajo
+OICV → Organización Internacional de Comisiones de Valores
+OICVM → organismos de inversión colectiva en valores mobiliarios
+OIT → Organización Internacional del Trabajo
+OIV → Organización Internacional de la Viña y el Vino
+OLAF → Oficina Europea de Lucha contra el Fraude
+OM → orden ministerial
+OMC → Organización Mundial del Comercio
+OMGI → Organismo Multilateral de Garantía de Inversiones
+OMI → Organización Marítima Internacional
+OMM → Organización Meteorológica Mundial
+OMPI → Organización Mundial de la Propiedad Intelectual
+OMS → Organización Mundial de la Salud
+OMT → Organización Mundial del Turismo
+ONI → Oficina Nacional de Inspección
+ONU → Organización de las Naciones Unidas
+ONUDI → Organización de las Naciones Unidas para el Desarrollo Industrial
+OO. AA. → organismos autónomos
+OSCE → Organización para la Seguridad y Cooperación en Europa
+OTAN → Organización del Tratado del Atlántico Norte
+OUA → Organización de la Unidad Africana
+PCSD → Política Común de Seguridad y Defensa
+PE → Parlamento Europeo
+PGC → Plan General de Contabilidad
+PGCP → Plan General de Contabilidad Pública
+PGE → Presupuestos Generales del Estado
+PGOU → Plan General De Ordenación Urbana
+PIDESC → Pacto Internacional de Derechos Económicos, Sociales y Culturales
+RA → Reglamento de Armas
+RAC → Reglamento de Auditoría de Cuentas
+RAE → Real Academia Española de la Lengua
+RAEIE → Reglamento relativo a la constitución de una Agrupación Europea de Interés Económico
+RAMINP → Reglamento de Actividades Molestas, Insalubres, Nocivas y Peligrosas
+RAPA → Reglamento de la Administración Pública del Agua y de la Planificación Hidrológica
+RBEL → Reglamento de Bienes de las Entidades Locales
+RBEL 1955 → Reglamento de Bienes de las Entidades Locales
+RCAP → Reglamento General de la Ley de Contratos de las Administraciones Públicas
+RCCL → Reglamento de Contratación de las Corporaciones Locales
+RCD → Reglamento del Congreso de los Diputados de 10 de febrero de 1982
+RCDE → Directiva 2003/87/CE del Parlamento Europeo y del Consejo de 13 de octubre de 2003
+RCGC → Reglamento del Registro de Condiciones Generales de la Contratación
+RD → Real Decreto
+RDCLRV → Real Decreto sobre compensación, liquidación y registro de valores negociables
+RDGRN → resolución de la Dirección General de los Registros y del Notariado
+RDL → Real Decreto-Ley
+RDLRT → Real Decreto Ley sobre Relaciones de Trabajo
+RDLeg. → Real Decreto Legislativo
+RDPH → Reglamento del Dominio Público Hidráulico
+RDSAD → Real Decreto sobre Sociedades Anónimas Deportivas
+RDU → Reglamento de Disciplina Urbanística
+REA → Régimen Especial Agrario
+REF → Reglamento de la Ley de Expropiación Forzosa
+REFRS → Reglamento de Edificación Forzosa y Registro Municipal de Solares
+REM → Régimen especial del mar
+RETA → Régimen Especial de Trabajadores Autónomos
+RFE → Real Decreto Ley por el que se regula la Firma Electrónica
+RGC → Reglamento General de Carreteras
+RGCE → Reglamento General de Contratación del Estado
+RGCir → Reglamento General de Circulación
+RGI → Reglamento general de las actuaciones y los procedimientos de gestión e inspección tributaria
+RGIPPT → Reglamento general de ingreso del personal al servicio de la Administración General del Estado
+RGIT → Reglamento General de la Inspección de los Tributos
+RGR → Reglamento General de Recaudación
+RGRM → Reglamento General para el Régimen de la Minería
+RGRST → Reglamento General del Régimen Sancionador Tributario
+RGU → Reglamento de Gestión Urbanística
+RGVeh → Reglamento General de Vehículos
+RH → Reglamento Hipotecario
+RHL → Reglamento de Haciendas Locales
+RIC → Reserva para inversiones en Canarias
+RICP → Reglamento sobre la instrumentación de los compromisos por pensiones de las empresas
+RIIC → Reglamento de desarrollo de la Ley 35/2003 de instituciones de inversión colectiva
+RIVA → Reglamento del Impuesto sobre el Valor Añadido
+RLPD → Reglamento de la Ley de Protección por Desempleo
+RM → Registro Mercantil
+RN → Reglamento del Notariado
+ROF → Reglamento de Organización, Funcionamiento y Régimen Jurídico de las Entidades Locales
+ROFRJCL → Reglamento de Organización, Funcionamiento y Régimen Jurídico de las Corporaciones Locales
+ROTT → Reglamento de la Ley de Ordenación de los Transportes Terrestres
+RP → Reglamento Penitenciario
+RPDEL → Reglamento de Población y Demarcación territorial de las Entidades Locales
+RPEA → Reglamento de Procedimiento Económico-Administrativo
+RPEPS → Reglamento de procedimiento para el ejercicio de la potestad sancionadora
+RPFP → Reglamento de Planes y Fondos de Pensiones
+RPREA → Reglamento de Procedimiento en las Reclamaciones Económico-Administrativas
+RPRP → Reglamento de los procedimientos de las Administraciones públicas en materia de responsabilidad patrimonial
+RPSTr → Reglamento de Procedimiento Sancionador en materia de Tráfico
+RPSan → Reglamento del Procedimiento para el Ejercicio de la Potestad Sancionadora
+RPU → Reglamento de Planeamiento Urbanístico
+RRC → Reglamento del Registro Civil
+RRM → Reglamento del Registro Mercantil
+RRVA → Reglamento general de desarrollo de la Ley 58/2003 General Tributaria en materia de revisión en vía administrativa
+RS → Reglamento del Senado
+RSAAE → Reglamento de Situaciones Administrativas de los Funcionarios Civiles de la Administración General del Estado
+RSCL → Reglamento de Servicios de las Corporaciones Locales
+RSE → Reglamento por el que se aprueba el Estatuto de la Sociedad Anónima Europea
+RSP → Reglamento de Servicios Postales
+Rgto. → Reglamento
+S. → sentencia
+S. A. → sociedad anónima
+S. A. L. → sociedad anónima laboral
+S. Coop. → sociedad cooperativa
+S. L. → sociedad limitada
+S.A.T. → Sociedad agraria de transformación
+S.R.L. → Sociedad de responsabilidad limitada
+SAN → sentencia de la Audiencia Nacional
+SAP → sentencia de audiencia provincial
+SAREB → Sociedad de Gestión de Activos Procedentes de la Reestructuración Bancaria
+SAS → Servicio Andaluz de Salud
+SCE → sociedad cooperativa europea
+SCIJ → sentencia de la Corte Internacional de Justicia
+SEBC → Sistema Europeo de Bancos Centrales
+SEITTSA → Sociedad Estatal de Infraestructuras de Transporte Terrestre
+SENPA → Servicio Nacional de Protección Agraria
+SEPI → Sociedad Estatal de Participaciones Industriales
+SEPRONA → Servicio de Protección de la Naturaleza de la Guardia Civil
+SERGAS → Servicio Gallego de Salud
+SESF → Sistema Europeo de Supervisión Financiera
+SETA → Sistema especial de trabajadores agrarios
+SIM → Sociedad de inversión mobiliaria
+SIMCAV → Sociedad de inversión mobiliaria de capital variable
+SLNE → sociedad limitada nueva empresa
+SMAC → Servicio de Mediación, Arbitraje y Conciliación
+SME → Sistema Monetario Europeo
+SMI → Salario mínimo interprofesional
+SOVI → Seguro Obligatorio de Vejez e Invalidez
+SS. CC. → servicios comunes
+STC → sentencia del Tribunal Constitucional
+STJUE → sentencia del Tribunal de Justicia de la Unión Europea
+STS → sentencia del Tribunal Supremo
+STSJ → sentencia de tribunal superior de justicia
+TA → texto articulado
+TALBSS → Texto Articulado de la Ley de Bases de la Seguridad Social
+TALPL → Texto Articulado de la Ley de Procedimiento Laboral
+TC → Tribunal Constitucional
+TCE → Tribunal de Cuentas Europeo
+TCECA → Tratado Constitutivo de la Comunidad Europea del Carbón y del Acero
+TCEE → Tratado Constitutivo de la Comunidad Económica Europea
+TCEEA → Tratado Constitutivo de la Comunidad Europea de la Energía Atómica
+TCEur → Tratado por el que se establece una Constitución para Europa
+TCJ → Tribunal de Conflictos Jurisdiccionales
+TCT → Tribunal Central de Trabajo
+TDC → Tribunal de Defensa de la Competencia
+TEAC → Tribunal Económico-Administrativo Central
+TEAF → Tribunal Económico-Administrativo Foral
+TEAP → Tribunal Económico-Administrativo Provincial
+TEAR → Tribunal Económico-Administrativo Regional
+TEDH → Tribunal Europeo de Derechos Humanos
+TFPUE → Tribunal de la Función Pública de la Unión Europea
+TFUE → Tratado de Funcionamiento de la Unión Europea
+TGSS → Tesorería General de la Seguridad Social
+TIJ → Tribunal Internacional de Justicia
+TJ → tribunal de justicia
+TJCE → Tribunal de Justicia de las Comunidades Europeas
+TJUE → Tribunal de Justicia de la Unión Europea
+TL → Tratado de Lisboa
+TPI → Tribunal Penal Internacional
+TPO → Transmisiones Patrimoniales Onerosas
+TR → texto refundido
+TRET → Texto Refundido de la Ley del Estatuto de los Trabajadores
+TRLA → Texto Refundido de la Ley de Aguas
+TRLCI → Texto Refundido de la Ley del Catastro Inmobiliario
+TRLCSP → Texto Refundido de la Ley de Contratos del Sector Público
+TRLE → Texto Refundido de la Ley de Empleo
+TRLEBEP → Texto Refundido de la Ley del Estatuto Básico del Empleado Público
+TRLET → Texto Refundido de la Ley del Estatuto de los Trabajadores
+TRLGDPD → Texto Refundido de la Ley General de derechos de las personas con discapacidad
+TRLGSS → Texto Refundido de la Ley General de la Seguridad Social
+TRLHL → Texto Refundido de la Ley Reguladora de las Haciendas Locales
+TRLIS → Texto Refundido de la Ley del Impuesto sobre Sociedades
+TRLISOS → Texto Refundido de la Ley sobre Infracciones y Sanciones en el Orden Social
+TRLMV → Texto Refundido de la Ley del Mercado de Valores
+TRLPEMM → Texto Refundido de la Ley de Puertos del Estado y de la Marina Mercante
+TRLPL → Texto Refundido de la Ley de Procedimiento Laboral
+TRLRHL → Real Decreto Legislativo 2/2004, de 5 de marzo, por el que se aprueba el texto refundido de la Ley Reguladora de las Haciendas Locales
+TRLS → Texto Refundido de la Ley del Suelo
+TRLSA → Texto Refundido de la Ley de Sociedades Anónimas
+TRLSC → Real Decreto Legislativo 1/2010, de 2 de julio, por el que se aprueba el texto refundido de la Ley de Sociedades de Capital
+TRLSRU → Texto Refundido de la Ley de Suelo y Rehabilitación Urbana
+TRLTSV → Texto Refundido de la Ley sobre Tráfico, Circulación de Vehículos a Motor y Seguridad Vial
+TRRL → Texto Refundido de las Disposiciones Legales vigentes de Régimen Local
+TS → Tribunal Supremo
+TSJ → Tribunal Superior de Justicia
+TUE → Tratado de la Unión Europea
+UE → Unión Europea
+UMAC → Unidad de Mediación, Arbitraje y Conciliación
+UNESCO → Organización de las Naciones Unidas para la Educación, Ciencia y Cultura
+UNICEF → Fondo de Naciones Unidas para la Infancia
+UPU → Unión Postal Universal
+UTE → Unión temporal de empresas
+UVMI o UVAMI → Unidad de Valoración Médica de Incapacidades
+VPO → Vivienda de protección oficial
+apdo. → Apartado
+art. → Artículo
+cfr. → confróntese
+disp. adic. → Disposición adicional
+disp. derog. → Disposición derogatoria
+disp. final → Disposición final
+disp. trans. → Disposición transitoria
+expte. → Expediente
+núm. /n.º → número
+pyme(s) → pequeña y mediana empresa
+párr. → Párrafo
+rec. → Recurso
+recl. → Reclamación
+s.e.u.o. → Salvo error u omisión
+s.en C. → Sociedad en comandita
+ss. → siguientes
+v. gr. → verbi gratia
+vs. → versus

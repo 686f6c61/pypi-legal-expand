@@ -1,0 +1,105 @@
+================================================================================
+                    DEMO INTERACTIVA - legal-expand
+          646 siglas legales españolas verificadas (RAE, BOE, DPEJ)
+================================================================================
+
+OPCION 1: Google Colab (recomendado)
+--------------------------------------------------------------------------------
+
+1. Abre el notebook directamente en Colab:
+   https://colab.research.google.com/github/686f6c61/pypi-legal-expand/blob/main/legal_expand_demo.ipynb
+
+2. Alternativa: sube el archivo manualmente
+   - Ve a https://colab.research.google.com
+   - Archivo > Subir notebook
+   - Selecciona el archivo: legal_expand_demo.ipynb
+
+3. Ejecuta las celdas en orden (Shift+Enter o boton Play)
+
+4. La primera celda instalara el paquete automaticamente:
+   !pip install legal-expand
+
+
+OPCION 2: Terminal local
+--------------------------------------------------------------------------------
+
+1. Instala el paquete:
+   pip install legal-expand
+
+2. Ejecuta la demo interactiva:
+   python demo.py
+
+3. O prueba directamente en Python:
+   >>> from legal_expand import expandir_siglas
+   >>> expandir_siglas('La AEAT notifica el IVA')
+
+
+OPCION 3: Jupyter Notebook local
+--------------------------------------------------------------------------------
+
+1. Instala Jupyter si no lo tienes:
+   pip install jupyter
+
+2. Instala el paquete:
+   pip install legal-expand
+
+3. Abre el notebook:
+   jupyter notebook legal_expand_demo.ipynb
+
+
+CONTENIDO DE LA DEMO
+--------------------------------------------------------------------------------
+
+El notebook incluye 11 secciones:
+
+ 1. Instalacion
+ 2. Uso basico (expansion simple, multiple, variantes)
+ 3. Formatos de salida (plain, html, structured)
+ 4. Control global (configurar_globalmente, resetear, force_expansion)
+ 5. Opciones avanzadas (expand_only_first, exclude, include)
+ 6. Funciones auxiliares (buscar_sigla, listar_siglas, obtener_estadisticas)
+ 7. Proteccion de contextos (URLs, emails, codigo)
+ 8. Casos de uso por perfil (estudiantes, opositores, academias, etc.)
+ 9. Ejemplos de documentos reales (sentencia, contrato, notificacion, etc.)
+10. Extensibilidad (crear formatters personalizados)
+11. Herramientas interactivas (buscador, expansor, analizador)
+
+
+EJEMPLOS RAPIDOS
+--------------------------------------------------------------------------------
+
+# Expansion basica
+from legal_expand import expandir_siglas
+expandir_siglas('La AEAT gestiona el IVA')
+# -> 'La AEAT (Agencia Estatal...) gestiona el IVA (Impuesto...)'
+
+# Formato HTML (para web)
+from legal_expand import ExpansionOptions
+expandir_siglas('La AEAT', ExpansionOptions(format='html'))
+# -> '<abbr title="Agencia...">AEAT</abbr> (Agencia...)'
+
+# Solo primera ocurrencia (documentos largos)
+expandir_siglas('AEAT... AEAT... AEAT', ExpansionOptions(expand_only_first=True))
+# -> 'AEAT (Agencia...)... AEAT... AEAT'
+
+# Buscar una sigla
+from legal_expand import buscar_sigla
+buscar_sigla('BOE')
+# -> AcronymSearchResult(acronym='BOE', meanings=['Boletin Oficial...'])
+
+
+RECURSOS
+--------------------------------------------------------------------------------
+
+PyPI:       https://pypi.org/project/legal-expand/
+GitHub:     https://github.com/686f6c61/pypi-legal-expand
+npm:        https://www.npmjs.com/package/legal-expand (version JavaScript)
+
+
+LICENCIA
+--------------------------------------------------------------------------------
+
+MIT - Uso libre para cualquier proposito.
+
+
+================================================================================
