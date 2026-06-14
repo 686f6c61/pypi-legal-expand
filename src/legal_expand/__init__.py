@@ -48,7 +48,7 @@ Example:
 
 from __future__ import annotations
 
-__version__ = "1.0.0"
+__version__ = "1.3.0"
 __author__ = "686f6c61"
 
 # ============================================================================
@@ -56,10 +56,22 @@ __author__ = "686f6c61"
 # ============================================================================
 
 from .core.engine import (
+    auditar_texto,
+    benchmark_texto,
     buscar_sigla,
+    exportar_glosario,
+    extraer_siglas,
     expandir_siglas,
+    expandir_siglas_detallado,
+    generar_glosario,
     listar_siglas,
+    obtener_info_diccionario,
     obtener_estadisticas,
+)
+from .documents import (
+    expandir_documento,
+    procesar_archivo,
+    procesar_directorio,
 )
 
 # ============================================================================
@@ -84,10 +96,21 @@ from .formatters import Formatter, FormatterFactory
 
 from .types import (
     AcronymSearchResult,
+    AuditReport,
+    AuditStats,
+    BatchResult,
+    BenchmarkResult,
+    DictionaryInfo,
     DictionaryStats,
+    DiagnosticOutput,
+    ExtractedAcronym,
+    ExtractionOutput,
     ExpandedAcronym,
     ExpansionOptions,
+    GlossaryEntry,
     GlobalConfig,
+    OmittedAcronym,
+    OmittedAcronymReason,
     Position,
     Stats,
     StructuredOutput,
@@ -103,9 +126,19 @@ __all__ = [
     "__author__",
     # Funciones principales
     "expandir_siglas",
+    "expandir_siglas_detallado",
+    "extraer_siglas",
+    "generar_glosario",
+    "exportar_glosario",
+    "auditar_texto",
+    "benchmark_texto",
+    "expandir_documento",
+    "procesar_archivo",
+    "procesar_directorio",
     "buscar_sigla",
     "listar_siglas",
     "obtener_estadisticas",
+    "obtener_info_diccionario",
     # Configuración global
     "configurar_globalmente",
     "obtener_configuracion_global",
@@ -117,6 +150,17 @@ __all__ = [
     "ExpansionOptions",
     "ExpandedAcronym",
     "StructuredOutput",
+    "DiagnosticOutput",
+    "ExtractionOutput",
+    "ExtractedAcronym",
+    "GlossaryEntry",
+    "AuditReport",
+    "AuditStats",
+    "BatchResult",
+    "BenchmarkResult",
+    "DictionaryInfo",
+    "OmittedAcronym",
+    "OmittedAcronymReason",
     "GlobalConfig",
     "AcronymSearchResult",
     "DictionaryStats",

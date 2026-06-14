@@ -4,8 +4,6 @@ Tests para casos especiales y edge cases de legal-expand
 Verifica el manejo de contextos especiales y casos límite.
 """
 
-import pytest
-
 from legal_expand import (
     expandir_siglas,
     resetear_configuracion,
@@ -42,10 +40,11 @@ class TestProteccionContextos:
 ```python
 AEAT = "variable"
 ```
-Más texto con AEAT.'''
+        Más texto con AEAT.'''
         resultado = expandir_siglas(texto)
         # Solo debe haber 2 expansiones (antes y después del bloque)
         # El AEAT dentro del código no debe expandirse
+        assert resultado.count('Agencia Estatal de Administración Tributaria') == 2
 
     def test_no_expandir_codigo_inline(self):
         """No debe expandir dentro de código inline."""

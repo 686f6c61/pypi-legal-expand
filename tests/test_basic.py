@@ -4,8 +4,6 @@ Tests básicos para legal-expand
 Verifica la funcionalidad principal de expansión de siglas.
 """
 
-import pytest
-
 from legal_expand import (
     buscar_sigla,
     expandir_siglas,

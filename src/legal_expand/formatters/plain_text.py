@@ -91,9 +91,9 @@ class PlainTextFormatter(Formatter):
 
         # PASO 2: Procesar desde el final hacia el inicio
         for match in sorted_matches:
-            # PASO 3: Insertar " (significado)" justo después de la sigla
-            before = result[:match.end_pos]
+            # PASO 3: Reemplazar el segmento por la sigla resuelta + significado
+            before = result[:match.start_pos]
             after = result[match.end_pos:]
-            result = f"{before} ({match.expansion}){after}"
+            result = f"{before}{match.original} ({match.expansion}){after}"
 
         return result

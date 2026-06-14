@@ -68,7 +68,7 @@ def normalize(text: str) -> str:
         >>> normalize("art. ")
         'art'
     """
-    return text.lower().replace('.', '').replace(' ', '')
+    return re.sub(r'\s+', '', text.lower().replace('.', ''))
 
 
 def escape_regex(text: str) -> str:
@@ -251,19 +251,19 @@ def is_inside_email(text: str, start_pos: int, end_pos: int) -> bool:
         >>> is_inside_email("La AEAT informa", 3, 7)
         False
     """
-    window = 50
-    before = text[max(0, start_pos - window):start_pos]
-    after = text[end_pos:min(len(text), end_pos + window)]
+    window_start = max(0, start_pos - 100)
+    window_end = min(len(text), end_pos + 100)
+    window_text = text[window_start:window_end]
 
-    # Patrón: algo antes con @ y algo después con dominio
-    has_at_before = '@' in before or re.search(r'\S+@$', before)
-    has_domain_after = re.search(r'^@?\S*\.\S+', after)
+    email_regex = re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
+    for match in email_regex.finditer(window_text):
+        email_start = window_start + match.start()
+        email_end = window_start + match.end()
 
-    # También verificar si el @ está justo después
-    has_at_after = re.search(r'^@\S+', after)
-    has_user_before = re.search(r'\S+$', before) and not before.endswith(' ')
+        if start_pos >= email_start and end_pos <= email_end:
+            return True
 
-    return (has_at_before and has_domain_after) or (has_user_before and has_at_after)
+    return False
 
 
 def is_inside_code_block(text: str, position: int) -> bool:

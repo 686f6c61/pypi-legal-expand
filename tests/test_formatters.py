@@ -9,7 +9,6 @@ import pytest
 from legal_expand import (
     FormatterFactory,
     Formatter,
-    resetear_configuracion,
 )
 from legal_expand.types import MatchInfo
 

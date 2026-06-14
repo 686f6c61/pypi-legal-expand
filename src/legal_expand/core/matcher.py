@@ -40,18 +40,25 @@ INTEGRACIÓN CON OTROS MÓDULOS:
 
 from __future__ import annotations
 
+import csv
 import json
 import re
 import threading
+from copy import deepcopy
 from pathlib import Path
 from typing import Optional
 
 from ..types import (
     AcronymSearchResult,
     DictionaryEntry,
+    DictionaryInfo,
     DictionaryStats,
     InternalOptions,
     MatchInfo,
+    MatchRunResult,
+    MatchRunStats,
+    OmittedAcronymReason,
+    OmittedMatchInfo,
 )
 from .normalizer import (
     SpecialContextOptions,
@@ -86,7 +93,11 @@ class DictionaryIndex:
         self,
         entries: list[DictionaryEntry],
         exact_index: dict[str, list[str]],
-        normalized_index: dict[str, list[str]]
+        normalized_index: dict[str, list[str]],
+        conflicts: Optional[list[dict]] = None,
+        version: str = 'unknown',
+        build_date: str = 'unknown',
+        custom_dictionaries: Optional[list[str]] = None
     ):
         """
         Inicializa el índice con datos del diccionario.
@@ -100,8 +111,23 @@ class DictionaryIndex:
         self.exact_index = exact_index
         self.normalized_index = normalized_index
         self._entries = entries
+        self.version = version
+        self.build_date = build_date
+        self.custom_dictionaries = custom_dictionaries or []
+        self.conflict_map = {
+            conflict['sigla']: {
+                'default_id': conflict['defaultId'],
+                'variants': conflict['variants']
+            }
+            for conflict in (conflicts or [])
+        }
 
-    def lookup(self, sigla: str, case_sensitive: bool = True) -> Optional[DictionaryEntry]:
+    def lookup(
+        self,
+        sigla: str,
+        case_sensitive: bool = True,
+        context_text: Optional[str] = None
+    ) -> Optional[DictionaryEntry]:
         """
         Busca una sigla en el diccionario usando búsqueda de 3 niveles.
 
@@ -120,24 +146,65 @@ class DictionaryIndex:
         # NIVEL 1: Exact match
         ids = self.exact_index.get(sigla)
         if ids:
-            return self._resolve_ids(ids, sigla)
+            return self._resolve_ids(ids, sigla, context_text)
 
         # NIVEL 2: Flexible match (sin puntos ni espacios)
-        flexible = sigla.replace('.', '').replace(' ', '')
+        flexible = re.sub(r'\s+', '', sigla.replace('.', ''))
         ids = self.exact_index.get(flexible)
         if ids:
-            return self._resolve_ids(ids, sigla)
+            return self._resolve_ids(ids, sigla, context_text)
 
         # NIVEL 3: Normalized match (solo si no es case-sensitive)
         if not case_sensitive:
             normalized_sigla = normalize(sigla)
             ids = self.normalized_index.get(normalized_sigla)
             if ids:
-                return self._resolve_ids(ids, sigla)
+                return self._resolve_ids(ids, sigla, context_text)
 
         return None
 
-    def _resolve_ids(self, ids: list[str], original_sigla: str) -> Optional[DictionaryEntry]:
+    def _entries_for_ids(self, ids: list[str]) -> list[DictionaryEntry]:
+        entries: list[DictionaryEntry] = []
+        for id_ in ids:
+            entry = self.entries_by_id.get(id_)
+            if entry is not None:
+                entries.append(entry)
+        return entries
+
+    @staticmethod
+    def _best_context_entry(
+        entries: list[DictionaryEntry],
+        context_text: Optional[str]
+    ) -> Optional[DictionaryEntry]:
+        if not context_text:
+            return None
+
+        context = context_text.lower()
+        scored_entries: list[tuple[int, int, DictionaryEntry]] = []
+        for entry in entries:
+            score = sum(
+                1
+                for keyword in entry.context_keywords
+                if keyword.lower() in context
+            )
+            scored_entries.append((score, entry.priority, entry))
+
+        best_score, _, best_entry = max(scored_entries, key=lambda item: (item[0], item[1]))
+        return best_entry if best_score > 0 else None
+
+    def _conflict_default_entry(self, original_sigla: str) -> Optional[DictionaryEntry]:
+        normalized_original = normalize(original_sigla)
+        for conflict_sigla, resolution in self.conflict_map.items():
+            if normalize(conflict_sigla) == normalized_original:
+                return self.entries_by_id.get(resolution['default_id'])
+        return None
+
+    def _resolve_ids(
+        self,
+        ids: list[str],
+        original_sigla: str,
+        context_text: Optional[str] = None
+    ) -> Optional[DictionaryEntry]:
         """
         Resuelve una lista de IDs a una entrada del diccionario.
 
@@ -157,13 +224,20 @@ class DictionaryIndex:
         if len(ids) == 1:
             return self.entries_by_id.get(ids[0])
 
-        # Múltiples significados: retornar el de mayor prioridad
-        entries = [self.entries_by_id.get(id_) for id_ in ids]
-        entries = [e for e in entries if e is not None]
+        entries = self._entries_for_ids(ids)
 
         if not entries:
             return None
 
+        context_entry = self._best_context_entry(entries, context_text)
+        if context_entry is not None:
+            return context_entry
+
+        conflict_entry = self._conflict_default_entry(original_sigla)
+        if conflict_entry is not None:
+            return conflict_entry
+
+        # Fallback: retornar el de mayor prioridad
         return max(entries, key=lambda e: e.priority)
 
     def has_multiple_meanings(self, sigla: str) -> bool:
@@ -176,11 +250,15 @@ class DictionaryIndex:
         Returns:
             True si tiene múltiples significados
         """
+        normalized_sigla = normalize(sigla)
+        for conflict_sigla in self.conflict_map:
+            if normalize(conflict_sigla) == normalized_sigla:
+                return True
+
         ids = self.exact_index.get(sigla, [])
         if len(ids) > 1:
             return True
 
-        normalized_sigla = normalize(sigla)
         ids = self.normalized_index.get(normalized_sigla, [])
         return len(ids) > 1
 
@@ -194,9 +272,17 @@ class DictionaryIndex:
         Returns:
             Lista de todos los significados posibles
         """
+        normalized_sigla = normalize(sigla)
+        for conflict_sigla, resolution in self.conflict_map.items():
+            if normalize(conflict_sigla) == normalized_sigla:
+                return [
+                    variant['significado']
+                    for variant in resolution['variants']
+                    if variant.get('significado')
+                ]
+
         ids = self.exact_index.get(sigla, [])
         if not ids:
-            normalized_sigla = normalize(sigla)
             ids = self.normalized_index.get(normalized_sigla, [])
 
         meanings = []
@@ -210,6 +296,28 @@ class DictionaryIndex:
     def get_all_entries(self) -> list[DictionaryEntry]:
         """Retorna todas las entradas del diccionario."""
         return self._entries
+
+    def get_info(self) -> DictionaryInfo:
+        """Retorna metadata del diccionario cargado."""
+        stats_unique = {entry.original for entry in self._entries}
+        sources = sorted({
+            entry.source
+            for entry in self._entries
+            if entry.source
+        })
+        if not sources:
+            sources = ['RAE', 'DPEJ', 'BOE', 'legislación vigente']
+
+        return DictionaryInfo(
+            dictionary_version=self.version,
+            build_date=self.build_date,
+            total_entries=len(self._entries),
+            total_acronyms=len(stats_unique),
+            total_variants=len(self.exact_index),
+            conflicts=len(self.conflict_map),
+            custom_dictionaries=list(self.custom_dictionaries),
+            sources=sources
+        )
 
 
 # ============================================================================
@@ -236,8 +344,13 @@ class SiglasMatcher:
     _instance: Optional[SiglasMatcher] = None
     _lock: threading.Lock = threading.Lock()
 
-    def __new__(cls) -> SiglasMatcher:
+    def __new__(cls, custom_dictionaries: Optional[list[str]] = None) -> SiglasMatcher:
         """Implementación thread-safe del Singleton."""
+        if custom_dictionaries:
+            instance = super().__new__(cls)
+            instance._initialize(custom_dictionaries)
+            return instance
+
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -245,12 +358,16 @@ class SiglasMatcher:
                     cls._instance._initialize()
         return cls._instance
 
-    def _initialize(self) -> None:
+    def __init__(self, custom_dictionaries: Optional[list[str]] = None) -> None:
+        # La inicialización real ocurre en __new__ para preservar el singleton.
+        pass
+
+    def _initialize(self, custom_dictionaries: Optional[list[str]] = None) -> None:
         """Inicializa el matcher cargando el diccionario y compilando regex."""
-        self._load_dictionary()
+        self._load_dictionary(custom_dictionaries)
         self._compile_pattern()
 
-    def _load_dictionary(self) -> None:
+    def _load_dictionary(self, custom_dictionaries: Optional[list[str]] = None) -> None:
         """Carga el diccionario JSON y construye los índices."""
         # Cargar JSON desde el directorio data
         data_path = Path(__file__).parent.parent / 'data' / 'dictionary.json'
@@ -265,16 +382,151 @@ class SiglasMatcher:
                 original=e['original'],
                 significado=e['significado'],
                 variants=e.get('variants', [e['original']]),
-                priority=e.get('priority', 100)
+                priority=e.get('priority', 100),
+                source=e.get('source'),
+                context_keywords=e.get('context_keywords', [])
             )
             for e in data['entries']
         ]
 
+        exact_index = deepcopy(data['index']['exact'])
+        normalized_index = deepcopy(data['index']['normalized'])
+        custom_paths = custom_dictionaries or []
+        custom_entries = self._load_custom_entries(custom_paths)
+        entries.extend(custom_entries)
+
+        for entry in custom_entries:
+            self._add_entry_to_indexes(entry, exact_index, normalized_index)
+
         # Construir índice
         self._index = DictionaryIndex(
             entries=entries,
-            exact_index=data['index']['exact'],
-            normalized_index=data['index']['normalized']
+            exact_index=exact_index,
+            normalized_index=normalized_index,
+            conflicts=data.get('conflicts', []),
+            version=data.get('version', 'unknown'),
+            build_date=data.get('buildDate', 'unknown'),
+            custom_dictionaries=custom_paths
+        )
+
+    @staticmethod
+    def _add_entry_to_indexes(
+        entry: DictionaryEntry,
+        exact_index: dict[str, list[str]],
+        normalized_index: dict[str, list[str]]
+    ) -> None:
+        """Añade una entrada a los índices exacto y normalizado."""
+        variants = [entry.original, *entry.variants]
+        for variant in variants:
+            exact_index.setdefault(variant, [])
+            if entry.id not in exact_index[variant]:
+                exact_index[variant].append(entry.id)
+
+            normalized = normalize(variant)
+            normalized_index.setdefault(normalized, [])
+            if entry.id not in normalized_index[normalized]:
+                normalized_index[normalized].append(entry.id)
+
+    def _load_custom_entries(self, paths: list[str]) -> list[DictionaryEntry]:
+        """Carga entradas personalizadas desde JSON o CSV."""
+        entries: list[DictionaryEntry] = []
+        for path_text in paths:
+            path = Path(path_text)
+            if not path.exists():
+                raise FileNotFoundError(f"Custom dictionary not found: {path}")
+
+            if path.suffix.lower() == '.json':
+                entries.extend(self._load_custom_json(path))
+            elif path.suffix.lower() == '.csv':
+                entries.extend(self._load_custom_csv(path))
+            else:
+                raise ValueError(
+                    f"Unsupported custom dictionary format: {path.suffix}. "
+                    "Use .json or .csv."
+                )
+
+        return entries
+
+    def _load_custom_json(self, path: Path) -> list[DictionaryEntry]:
+        with open(path, 'r', encoding='utf-8') as f:
+            payload = json.load(f)
+
+        raw_entries = payload.get('entries', payload) if isinstance(payload, dict) else payload
+        if not isinstance(raw_entries, list):
+            raise ValueError(f"Custom JSON dictionary must contain a list of entries: {path}")
+
+        return [
+            self._custom_entry_from_mapping(item, path, index)
+            for index, item in enumerate(raw_entries, start=1)
+        ]
+
+    def _load_custom_csv(self, path: Path) -> list[DictionaryEntry]:
+        with open(path, 'r', encoding='utf-8', newline='') as f:
+            reader = csv.DictReader(f)
+            return [
+                self._custom_entry_from_mapping(row, path, index)
+                for index, row in enumerate(reader, start=1)
+            ]
+
+    @staticmethod
+    def _split_list_value(value: object) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        text = str(value).strip()
+        if not text:
+            return []
+        return [
+            item.strip()
+            for item in re.split(r'[;,]', text)
+            if item.strip()
+        ]
+
+    def _custom_entry_from_mapping(
+        self,
+        item: object,
+        path: Path,
+        index: int
+    ) -> DictionaryEntry:
+        if not isinstance(item, dict):
+            raise ValueError(f"Custom dictionary entry #{index} is not an object: {path}")
+
+        original = (
+            item.get('original')
+            or item.get('sigla')
+            or item.get('acronym')
+        )
+        significado = (
+            item.get('significado')
+            or item.get('meaning')
+            or item.get('expansion')
+        )
+
+        if not original or not significado:
+            raise ValueError(
+                f"Custom dictionary entry #{index} in {path} needs "
+                "'original'/'sigla'/'acronym' and 'significado'/'expansion'."
+            )
+
+        variants = self._split_list_value(item.get('variants'))
+        if not variants:
+            variants = [str(original)]
+
+        context_keywords = self._split_list_value(
+            item.get('context_keywords') or item.get('keywords')
+        )
+        priority = int(item.get('priority') or 100)
+        source = item.get('source') or f"custom:{path.name}"
+
+        return DictionaryEntry(
+            id=str(item.get('id') or f"custom-{path.stem}-{index}"),
+            original=str(original),
+            significado=str(significado),
+            variants=variants,
+            priority=priority,
+            source=str(source),
+            context_keywords=context_keywords
         )
 
     def _compile_pattern(self) -> None:
@@ -287,9 +539,9 @@ class SiglasMatcher:
         # 1. Recopilar todas las variantes de todas las entradas
         all_variants: set[str] = set()
         for entry in self._index.get_all_entries():
-            all_variants.add(entry.original)
+            self._add_search_variants(all_variants, entry.original)
             for variant in entry.variants:
-                all_variants.add(variant)
+                self._add_search_variants(all_variants, variant)
 
         # 2. Ordenar por longitud DESCENDENTE (CRÍTICO)
         sorted_variants = sorted(all_variants, key=len, reverse=True)
@@ -306,6 +558,26 @@ class SiglasMatcher:
         )
 
         self._pattern = re.compile(pattern_str)
+
+    @staticmethod
+    def _add_search_variants(target: set[str], value: str) -> None:
+        """
+        Añade variantes de búsqueda derivadas de siglas compactas.
+
+        Replica la mejora del paquete NPM: además de la forma canónica,
+        permite detectar variantes minúsculas y formas con puntos como
+        A.E.A.T. sin inflar el diccionario fuente.
+        """
+        target.add(value)
+
+        if re.fullmatch(r'[A-ZÁÉÍÓÚÑÜ0-9]{3,10}', value):
+            dotted_upper = '.'.join(value) + '.'
+            lower = value.lower()
+            dotted_lower = '.'.join(lower) + '.'
+
+            target.add(dotted_upper)
+            target.add(lower)
+            target.add(dotted_lower)
 
     @classmethod
     def get_instance(cls) -> SiglasMatcher:
@@ -339,8 +611,152 @@ class SiglasMatcher:
         Returns:
             Lista de MatchInfo con información de cada sigla encontrada
         """
+        return self.find_matches_detailed(text, options).matches
+
+    @staticmethod
+    def _add_omitted_match(
+        omitted_matches: list[OmittedMatchInfo],
+        matched: str,
+        start_pos: int,
+        end_pos: int,
+        reason: OmittedAcronymReason,
+        details: Optional[str] = None
+    ) -> None:
+        omitted_matches.append(OmittedMatchInfo(
+            original=matched,
+            start_pos=start_pos,
+            end_pos=end_pos,
+            reason=reason,
+            details=details
+        ))
+
+    @staticmethod
+    def _special_context_reason(
+        text: str,
+        start_pos: int,
+        end_pos: int,
+        options: SpecialContextOptions
+    ) -> Optional[OmittedAcronymReason]:
+        reason_map: dict[str, OmittedAcronymReason] = {
+            'url': 'inside-url',
+            'email': 'inside-email',
+            'code-block': 'inside-code-block',
+            'inline-code': 'inside-inline-code',
+        }
+        special_context = is_in_special_context(text, start_pos, end_pos, options)
+        if special_context:
+            return reason_map.get(special_context)
+        return None
+
+    @staticmethod
+    def _contains_normalized(values: list[str], normalized_value: str) -> bool:
+        return any(normalize(value) == normalized_value for value in values)
+
+    def _filter_omission_reason(
+        self,
+        normalized_matched: str,
+        options: InternalOptions,
+        seen: set[str]
+    ) -> Optional[OmittedAcronymReason]:
+        if options.exclude and self._contains_normalized(options.exclude, normalized_matched):
+            return 'excluded'
+
+        if options.include is not None:
+            if not self._contains_normalized(options.include, normalized_matched):
+                return 'not-in-include'
+
+        if options.expand_only_first:
+            if normalized_matched in seen:
+                return 'expand-only-first'
+            seen.add(normalized_matched)
+
+        return None
+
+    def _lookup_match_entry(
+        self,
+        text: str,
+        matched: str,
+        start_pos: int,
+        end_pos: int
+    ) -> Optional[DictionaryEntry]:
+        context_text = text[max(0, start_pos - 120):min(len(text), end_pos + 120)]
+        return self._index.lookup(
+            matched,
+            case_sensitive=False,
+            context_text=context_text
+        )
+
+    @staticmethod
+    def _manual_duplicate_resolution(
+        options: InternalOptions,
+        normalized_matched: str
+    ) -> Optional[str]:
+        for key, value in options.duplicate_resolution.items():
+            if normalize(key) == normalized_matched:
+                return value
+        return None
+
+    def _resolve_match_expansion(
+        self,
+        entry: DictionaryEntry,
+        normalized_matched: str,
+        options: InternalOptions
+    ) -> tuple[str, bool, Optional[list[str]], Optional[str]]:
+        has_multiple = self._index.has_multiple_meanings(entry.original)
+        expansion = entry.significado
+        all_meanings = None
+
+        if not has_multiple:
+            return expansion, has_multiple, all_meanings, None
+
+        all_meanings = self._index.get_all_meanings(entry.original)
+        manual_resolution = self._manual_duplicate_resolution(options, normalized_matched)
+        if manual_resolution:
+            return manual_resolution, has_multiple, all_meanings, None
+
+        if options.auto_resolve_duplicates:
+            return expansion, has_multiple, all_meanings, None
+
+        return expansion, has_multiple, all_meanings, ' | '.join(all_meanings or [])
+
+    @staticmethod
+    def _build_match_info(
+        matched: str,
+        entry: DictionaryEntry,
+        expansion: str,
+        start_pos: int,
+        end_pos: int,
+        has_multiple: bool,
+        all_meanings: Optional[list[str]],
+        options: InternalOptions
+    ) -> MatchInfo:
+        return MatchInfo(
+            original=matched if options.preserve_case else entry.original,
+            expansion=expansion,
+            start_pos=start_pos,
+            end_pos=end_pos,
+            confidence=1.0,
+            has_multiple_meanings=has_multiple,
+            all_meanings=all_meanings,
+            source=entry.source
+        )
+
+    def find_matches_detailed(
+        self,
+        text: str,
+        options: InternalOptions
+    ) -> MatchRunResult:
+        """
+        Busca siglas y conserva trazabilidad de matches omitidos.
+
+        Returns:
+            MatchRunResult con matches expandidos, omisiones y estadísticas.
+        """
         matches: list[MatchInfo] = []
+        omitted_matches: list[OmittedMatchInfo] = []
         seen: set[str] = set()  # Para expandOnlyFirst
+        total_acronyms_found = 0
+        ambiguous_not_expanded = 0
 
         # Configuración de contextos especiales
         context_options = SpecialContextOptions(
@@ -355,70 +771,93 @@ class SiglasMatcher:
             matched = match.group(0)
             start_pos = match.start()
             end_pos = match.end()
+            normalized_matched = normalize(matched)
 
             # VALIDACIÓN 1: ¿Es parte de palabra más larga?
             if is_part_of_larger_word(text, start_pos, end_pos):
                 continue
 
             # VALIDACIÓN 2: ¿Está en contexto especial?
-            if is_in_special_context(text, start_pos, end_pos, context_options):
+            omitted_reason = self._special_context_reason(
+                text,
+                start_pos,
+                end_pos,
+                context_options
+            )
+            if omitted_reason:
+                self._add_omitted_match(
+                    omitted_matches,
+                    matched,
+                    start_pos,
+                    end_pos,
+                    omitted_reason
+                )
                 continue
 
-            # VALIDACIÓN 3: ¿Está excluida?
-            if options.exclude:
-                normalized_matched = normalize(matched)
-                if any(normalize(ex) == normalized_matched for ex in options.exclude):
-                    continue
-
-            # VALIDACIÓN 4: ¿Está incluida? (si include está definido)
-            if options.include is not None:
-                normalized_matched = normalize(matched)
-                if not any(normalize(inc) == normalized_matched for inc in options.include):
-                    continue
-
-            # VALIDACIÓN 5: ¿Ya vimos esta sigla? (expandOnlyFirst)
-            if options.expand_only_first:
-                normalized_matched = normalize(matched)
-                if normalized_matched in seen:
-                    continue
-                seen.add(normalized_matched)
+            omitted_reason = self._filter_omission_reason(
+                normalized_matched,
+                options,
+                seen
+            )
+            if omitted_reason:
+                self._add_omitted_match(
+                    omitted_matches,
+                    matched,
+                    start_pos,
+                    end_pos,
+                    omitted_reason
+                )
+                continue
 
             # BÚSQUEDA EN DICCIONARIO
-            entry = self._index.lookup(matched, options.preserve_case)
+            entry = self._lookup_match_entry(text, matched, start_pos, end_pos)
             if not entry:
+                self._add_omitted_match(
+                    omitted_matches,
+                    matched,
+                    start_pos,
+                    end_pos,
+                    'not-found'
+                )
                 continue
 
+            total_acronyms_found += 1
+
             # MANEJO DE DUPLICADOS
-            has_multiple = self._index.has_multiple_meanings(matched)
-            expansion = entry.significado
-            all_meanings = None
+            expansion, has_multiple, all_meanings, ambiguity_details = (
+                self._resolve_match_expansion(entry, normalized_matched, options)
+            )
+            if ambiguity_details is not None:
+                ambiguous_not_expanded += 1
+                self._add_omitted_match(
+                    omitted_matches,
+                    matched,
+                    start_pos,
+                    end_pos,
+                    'ambiguous-unresolved',
+                    ambiguity_details
+                )
+                continue
 
-            if has_multiple:
-                all_meanings = self._index.get_all_meanings(matched)
-
-                # Verificar resolución manual
-                if options.duplicate_resolution:
-                    manual_resolution = options.duplicate_resolution.get(matched)
-                    if manual_resolution:
-                        expansion = manual_resolution
-                    elif not options.auto_resolve_duplicates:
-                        # No hay resolución manual y no auto-resolve: skip
-                        continue
-                elif not options.auto_resolve_duplicates:
-                    # No hay resolución y no auto-resolve: skip
-                    continue
-
-            matches.append(MatchInfo(
-                original=matched,
-                expansion=expansion,
-                start_pos=start_pos,
-                end_pos=end_pos,
-                confidence=1.0,
-                has_multiple_meanings=has_multiple,
-                all_meanings=all_meanings
+            matches.append(self._build_match_info(
+                matched,
+                entry,
+                expansion,
+                start_pos,
+                end_pos,
+                has_multiple,
+                all_meanings,
+                options
             ))
 
-        return matches
+        return MatchRunResult(
+            matches=matches,
+            omitted_matches=omitted_matches,
+            stats=MatchRunStats(
+                total_acronyms_found=total_acronyms_found,
+                ambiguous_not_expanded=ambiguous_not_expanded
+            )
+        )
 
     def buscar_sigla(self, sigla: str) -> Optional[AcronymSearchResult]:
         """
@@ -439,9 +878,10 @@ class SiglasMatcher:
             meanings = [entry.significado]
 
         return AcronymSearchResult(
-            acronym=sigla,
+            acronym=entry.original,
             meanings=meanings,
-            has_duplicates=len(meanings) > 1
+            has_duplicates=len(meanings) > 1,
+            source=entry.source
         )
 
     def listar_siglas(self) -> list[str]:
@@ -469,7 +909,7 @@ class SiglasMatcher:
         entries = self._index.get_all_entries()
 
         # Contar siglas únicas
-        unique_originals = set(e.original for e in entries)
+        unique_originals = {entry.original for entry in entries}
         total_acronyms = len(unique_originals)
 
         # Contar siglas con duplicados
@@ -490,12 +930,23 @@ class SiglasMatcher:
             acronyms_with_punctuation=acronyms_with_punctuation
         )
 
+    def obtener_info_diccionario(self) -> DictionaryInfo:
+        """
+        Obtiene metadata completa del diccionario cargado.
 
-def get_matcher() -> SiglasMatcher:
+        Returns:
+            DictionaryInfo con versión, fecha, variantes y fuentes
+        """
+        return self._index.get_info()
+
+
+def get_matcher(custom_dictionaries: Optional[list[str]] = None) -> SiglasMatcher:
     """
     Obtiene la instancia del matcher (función de conveniencia).
 
     Returns:
         Instancia singleton del SiglasMatcher
     """
+    if custom_dictionaries:
+        return SiglasMatcher(custom_dictionaries=custom_dictionaries)
     return SiglasMatcher.get_instance()

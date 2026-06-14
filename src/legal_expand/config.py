@@ -38,7 +38,7 @@ from __future__ import annotations
 import threading
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Literal, Optional
+from typing import Optional
 
 from .types import ExpansionOptions, GlobalConfig, InternalOptions
 
@@ -114,6 +114,54 @@ class GlobalConfigManager:
         with cls._lock:
             cls._instance = None
 
+    @staticmethod
+    def _merge_default_options(
+        opts: ExpansionOptions,
+        defaults: InternalOptions
+    ) -> InternalOptions:
+        return InternalOptions(
+            format=opts.format if opts.format is not None else defaults.format,
+            force_expansion=opts.force_expansion,
+            preserve_case=(
+                opts.preserve_case
+                if opts.preserve_case is not None
+                else defaults.preserve_case
+            ),
+            auto_resolve_duplicates=(
+                opts.auto_resolve_duplicates
+                if opts.auto_resolve_duplicates is not None
+                else defaults.auto_resolve_duplicates
+            ),
+            duplicate_resolution=(
+                opts.duplicate_resolution
+                if opts.duplicate_resolution
+                else deepcopy(defaults.duplicate_resolution)
+            ),
+            expand_only_first=(
+                opts.expand_only_first
+                if opts.expand_only_first is not None
+                else defaults.expand_only_first
+            ),
+            exclude=opts.exclude if opts.exclude else list(defaults.exclude),
+            include=opts.include,
+            custom_dictionaries=(
+                opts.custom_dictionaries
+                if opts.custom_dictionaries
+                else list(defaults.custom_dictionaries)
+            )
+        )
+
+    @staticmethod
+    def _resolve_include(
+        include: Optional[list[str]],
+        default_include: Optional[list[str]]
+    ) -> Optional[list[str]]:
+        if include is not None:
+            return include
+        if default_include:
+            return list(default_include)
+        return None
+
     def set_config(self, config: GlobalConfig) -> None:
         """
         Establece la configuración global.
@@ -131,16 +179,9 @@ class GlobalConfigManager:
             self._config.enabled = config.enabled
 
         if config.default_options is not None:
-            opts = config.default_options
-            self._config.default_options = InternalOptions(
-                format=opts.format if opts.format is not None else self._config.default_options.format,
-                force_expansion=opts.force_expansion,
-                preserve_case=opts.preserve_case if opts.preserve_case is not None else self._config.default_options.preserve_case,
-                auto_resolve_duplicates=opts.auto_resolve_duplicates if opts.auto_resolve_duplicates is not None else self._config.default_options.auto_resolve_duplicates,
-                duplicate_resolution=opts.duplicate_resolution if opts.duplicate_resolution else self._config.default_options.duplicate_resolution,
-                expand_only_first=opts.expand_only_first if opts.expand_only_first is not None else self._config.default_options.expand_only_first,
-                exclude=opts.exclude if opts.exclude else self._config.default_options.exclude,
-                include=opts.include
+            self._config.default_options = self._merge_default_options(
+                config.default_options,
+                self._config.default_options
             )
 
     def get_config(self) -> GlobalConfig:
@@ -165,7 +206,8 @@ class GlobalConfigManager:
                 duplicate_resolution=deepcopy(self._config.default_options.duplicate_resolution),
                 expand_only_first=self._config.default_options.expand_only_first,
                 exclude=list(self._config.default_options.exclude),
-                include=list(self._config.default_options.include) if self._config.default_options.include else None
+                include=list(self._config.default_options.include) if self._config.default_options.include else None,
+                custom_dictionaries=list(self._config.default_options.custom_dictionaries)
             )
         )
 
@@ -244,8 +286,11 @@ class GlobalConfigManager:
                 duplicate_resolution=deepcopy(defaults.duplicate_resolution),
                 expand_only_first=defaults.expand_only_first,
                 exclude=list(defaults.exclude),
-                include=list(defaults.include) if defaults.include else None
+                include=list(defaults.include) if defaults.include else None,
+                custom_dictionaries=list(defaults.custom_dictionaries)
             )
+
+        include = self._resolve_include(options.include, defaults.include)
 
         return InternalOptions(
             format=options.format if options.format is not None else defaults.format,
@@ -255,7 +300,8 @@ class GlobalConfigManager:
             duplicate_resolution=options.duplicate_resolution if options.duplicate_resolution else deepcopy(defaults.duplicate_resolution),
             expand_only_first=options.expand_only_first if options.expand_only_first is not None else defaults.expand_only_first,
             exclude=options.exclude if options.exclude else list(defaults.exclude),
-            include=options.include if options.include is not None else (list(defaults.include) if defaults.include else None)
+            include=include,
+            custom_dictionaries=options.custom_dictionaries if options.custom_dictionaries else list(defaults.custom_dictionaries)
         )
 
 

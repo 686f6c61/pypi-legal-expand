@@ -23,6 +23,11 @@ Salida:  "La AEAT (Agencia Estatal de Administración Tributaria) notifica el IV
 - **Fuentes oficiales**: RAE, DPEJ, BOE y legislación vigente
 - **Detección inteligente** de variantes (AEAT, A.E.A.T., A.E.A.T)
 - **Múltiples formatos**: texto plano, HTML semántico, JSON estructurado
+- **Diagnóstico de omisiones**: razones estables para siglas omitidas por filtros o contexto
+- **CLI oficial**: expansión, auditoría, glosario, batch, metadata y benchmark desde terminal
+- **Glosarios y auditoría**: exportación Markdown, CSV y JSON
+- **Procesamiento de documentos**: `.txt`, `.md`, `.html` y carpetas completas
+- **Diccionarios personalizados**: añade siglas propias desde JSON o CSV
 - **Documentos largos optimizados**: expandir solo primera ocurrencia para evitar repeticiones
 - **Control granular**: configuración global + override por llamada
 - **Zero dependencies**: sin dependencias en runtime
@@ -41,8 +46,13 @@ El notebook incluye ejemplos de todos los casos de uso: expansión básica, form
 
 - [Demo interactiva](#demo-interactiva)
 - [Instalación](#instalación)
+- [CLI](#cli)
 - [Uso básico](#uso-básico)
 - [Formatos de salida](#formatos-de-salida)
+- [Diagnóstico de omisiones](#diagnóstico-de-omisiones)
+- [Glosario y auditoría](#glosario-y-auditoría)
+- [Documentos y batch](#documentos-y-batch)
+- [Diccionarios personalizados](#diccionarios-personalizados)
 - [Control global y override](#control-global-y-override)
 - [Opciones avanzadas](#opciones-avanzadas)
 - [Manejo de duplicados](#manejo-de-duplicados)
@@ -64,6 +74,31 @@ El notebook incluye ejemplos de todos los casos de uso: expansión básica, form
 
 ```bash
 pip install legal-expand
+```
+
+## CLI
+
+Al instalar el paquete se crea el comando `legal-expand`.
+
+```bash
+# Expandir un archivo
+legal-expand sentencia.txt --expand-only-first --output sentencia-expandida.txt
+
+# Leer de stdin
+cat sentencia.txt | legal-expand --format html
+
+# Diagnóstico completo
+legal-expand audit sentencia.txt --report-format markdown --output audit.md
+
+# Glosario único
+legal-expand glossary sentencia.txt --glossary-format csv --output glosario.csv
+
+# Procesar una carpeta completa (.txt, .md, .html)
+legal-expand batch docs/ docs-expandidos/ --format html
+
+# Metadata y benchmark
+legal-expand info
+legal-expand benchmark sentencia.txt --iterations 500
 ```
 
 ## Uso básico
@@ -180,6 +215,92 @@ print(f"- Siglas ambiguas no expandidas: {analisis.stats.ambiguous_not_expanded}
 
 for sigla in analisis.acronyms:
     print(f"  • {sigla.acronym} → {sigla.expansion}")
+```
+
+## Diagnóstico de omisiones
+
+Si necesitas saber por qué una sigla detectada no se expandió, usa `expandir_siglas_detallado()`.
+Devuelve la misma salida estructurada y añade `omitted_acronyms` con motivos estables.
+
+```python
+from legal_expand import expandir_siglas_detallado, ExpansionOptions
+
+resultado = expandir_siglas_detallado(
+    'Visita https://aeat.es y revisa AEAT y BOE',
+    ExpansionOptions(include=['AEAT'])
+)
+
+for omitida in resultado.omitted_acronyms:
+    print(omitida.acronym, omitida.reason)
+
+# Posibles razones:
+# excluded, not-in-include, expand-only-first, ambiguous-unresolved,
+# inside-url, inside-email, inside-code-block, inside-inline-code, not-found
+```
+
+Todos los objetos de salida principales tienen `to_dict()` y `to_json()`.
+
+```python
+print(resultado.to_json(indent=2))
+```
+
+## Glosario y auditoría
+
+```python
+from legal_expand import auditar_texto, exportar_glosario, extraer_siglas
+
+texto = 'La AEAT gestiona el IVA. La AEAT publica aviso en el BOE. XYZ aparece.'
+
+# Detectar sin modificar el texto
+extraccion = extraer_siglas(texto)
+
+# Exportar glosario único
+markdown = exportar_glosario(texto, 'markdown')
+csv = exportar_glosario(texto, 'csv')
+json_glosario = exportar_glosario(texto, 'json')
+
+# Auditar conocidas, desconocidas, omitidas y repetidas
+reporte = auditar_texto(texto)
+print(reporte.stats.to_dict())
+```
+
+## Documentos y batch
+
+```python
+from legal_expand import ExpansionOptions, expandir_documento, procesar_archivo, procesar_directorio
+
+html = '<p>La AEAT notifica el IVA</p>'
+resultado = expandir_documento(html, ExpansionOptions(format='html'), document_format='html')
+
+procesar_archivo('sentencia.md', 'sentencia-expandida.md', ExpansionOptions(expand_only_first=True))
+procesar_directorio('docs/', 'docs-expandidos/', ExpansionOptions(format='html'))
+```
+
+En HTML se preservan etiquetas y atributos, expandiendo solo nodos de texto.
+
+## Diccionarios personalizados
+
+Puedes añadir siglas propias con JSON o CSV sin recompilar el paquete.
+
+```json
+[
+  {
+    "acronym": "LXP",
+    "expansion": "Legal Expand Personalizado",
+    "variants": ["LXP"],
+    "source": "equipo-interno"
+  }
+]
+```
+
+```python
+from legal_expand import ExpansionOptions, expandir_siglas, obtener_info_diccionario
+
+opciones = ExpansionOptions(custom_dictionaries=['mi_diccionario.json'])
+print(expandir_siglas('Usa LXP en el informe', opciones))
+
+info = obtener_info_diccionario(['mi_diccionario.json'])
+print(info.to_dict())
 ```
 
 ## Control global y override
@@ -311,50 +432,33 @@ resultado = expandir_siglas(documento, ExpansionOptions(
 
 ## Manejo de duplicados
 
-### Problema de duplicados
+El motor soporta siglas con múltiples significados cuando el diccionario declare conflictos explícitos.
+En la versión actual del diccionario incluido, `obtener_estadisticas().acronyms_with_duplicates` devuelve `0`, por lo que las opciones de duplicados quedan preparadas para futuras ampliaciones del diccionario sin afectar a las siglas actuales.
 
-Algunas siglas tienen múltiples significados posibles. Por ejemplo, "DGT" puede referirse a "Dirección General de Tributos" o "Dirección General de Tráfico". Por defecto, estas siglas **no se expanden**.
-
-```python
-resultado = expandir_siglas('La DGT informa')
-print(resultado)
-# Salida: 'La DGT informa' (no se expande porque tiene múltiples significados)
-```
-
-### Resolución manual de duplicados
+### Resolución manual
 
 ```python
-resultado = expandir_siglas('La DGT ha emitido una consulta vinculante', ExpansionOptions(
+resultado = expandir_siglas(texto, ExpansionOptions(
     duplicate_resolution={
-        'DGT': 'Dirección General de Tributos'
+        'SIGLA': 'Significado elegido manualmente'
     }
 ))
-
-print(resultado)
-# Salida: 'La DGT (Dirección General de Tributos) ha emitido una consulta vinculante'
 ```
 
 ### Auto-resolver duplicados
 
 ```python
-resultado = expandir_siglas('La DGT informa', ExpansionOptions(auto_resolve_duplicates=True))
-
-print(resultado)
-# Salida: 'La DGT (Dirección General de Tributos) informa'
-# (usa el significado con mayor prioridad)
+resultado = expandir_siglas(texto, ExpansionOptions(auto_resolve_duplicates=True))
 ```
 
 ### Consultar duplicados
 
 ```python
-from legal_expand import buscar_sigla
+from legal_expand import obtener_estadisticas
 
-info = buscar_sigla('DGT')
-print(info)
-# AcronymSearchResult(acronym='DGT', meanings=['Dirección General de Tributos', 'Dirección General de Tráfico'], has_duplicates=True)
-
-if info.has_duplicates:
-    print(f"La sigla {info.acronym} tiene {len(info.meanings)} significados posibles")
+stats = obtener_estadisticas()
+print(stats.acronyms_with_duplicates)
+# 0 en el diccionario actual
 ```
 
 ## Funciones auxiliares
@@ -708,6 +812,46 @@ Función principal que expande siglas en un texto.
 
 **Retorna:** `str | StructuredOutput` según el formato especificado
 
+### expandir_siglas_detallado(texto, opciones?)
+
+Expande siglas y devuelve diagnóstico completo de omisiones.
+
+**Retorna:** `DiagnosticOutput`
+
+### extraer_siglas(texto, opciones?, incluir_desconocidas=True)
+
+Detecta siglas sin modificar el texto.
+
+**Retorna:** `ExtractionOutput`
+
+### generar_glosario(texto, opciones?)
+
+Genera entradas únicas de glosario.
+
+**Retorna:** `list[GlossaryEntry]`
+
+### exportar_glosario(texto, formato='markdown', opciones?)
+
+Exporta el glosario como `markdown`, `csv` o `json`.
+
+### auditar_texto(texto, opciones?)
+
+Genera informe de auditoría con conocidas, desconocidas, omitidas, repetidas y glosario.
+
+**Retorna:** `AuditReport`
+
+### expandir_documento(), procesar_archivo(), procesar_directorio()
+
+Procesan texto, Markdown, HTML o carpetas completas preservando estructura básica.
+
+### obtener_info_diccionario(custom_dictionaries?)
+
+Devuelve metadata del diccionario base y diccionarios personalizados.
+
+### benchmark_texto(texto, opciones?, iterations=100)
+
+Mide rendimiento de expansión.
+
 ### ExpansionOptions
 
 ```python
@@ -721,6 +865,7 @@ class ExpansionOptions:
     expand_only_first: bool = False
     exclude: list[str] = field(default_factory=list)
     include: Optional[list[str]] = None
+    custom_dictionaries: list[str] = field(default_factory=list)
 ```
 
 ### StructuredOutput
@@ -732,6 +877,21 @@ class StructuredOutput:
     expanded_text: str
     acronyms: list[ExpandedAcronym]
     stats: Stats
+```
+
+### DiagnosticOutput
+
+```python
+@dataclass
+class DiagnosticOutput(StructuredOutput):
+    omitted_acronyms: list[OmittedAcronym] = field(default_factory=list)
+
+@dataclass
+class OmittedAcronym:
+    acronym: str
+    position: Position
+    reason: OmittedAcronymReason
+    details: Optional[str] = None
 ```
 
 ### configurar_globalmente(config)
@@ -824,7 +984,7 @@ El paquete está optimizado para procesar documentos legales de forma eficiente:
 
 ## Compatibilidad
 
-- **Python**: 3.9, 3.10, 3.11, 3.12, 3.13
+- **Python**: 3.9, 3.10, 3.11, 3.12, 3.13, 3.14
 - **Frameworks**: FastAPI, Flask, Django, Streamlit, y otros
 - **Sin dependencias** en runtime
 

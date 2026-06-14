@@ -38,8 +38,37 @@ TIPOS PÚBLICOS PRINCIPALES:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Literal, Optional
+import json
+from dataclasses import dataclass, field, is_dataclass
+from enum import Enum
+from typing import Any, Literal, Optional
+
+
+def _to_plain(value: Any) -> Any:
+    """Convierte dataclasses y contenedores anidados a tipos JSON-friendly."""
+    if is_dataclass(value):
+        return {
+            key: _to_plain(val)
+            for key, val in value.__dict__.items()
+            if not key.startswith('_')
+        }
+    if isinstance(value, dict):
+        return {str(key): _to_plain(val) for key, val in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_to_plain(item) for item in value]
+    if isinstance(value, Enum):
+        return value.value
+    return value
+
+
+class SerializableMixin:
+    """Mixin pequeño para exponer resultados como dict o JSON."""
+
+    def to_dict(self) -> dict[str, Any]:
+        return _to_plain(self)
+
+    def to_json(self, *, ensure_ascii: bool = False, indent: Optional[int] = None) -> str:
+        return json.dumps(self.to_dict(), ensure_ascii=ensure_ascii, indent=indent)
 
 
 # ============================================================================
@@ -47,7 +76,7 @@ from typing import Literal, Optional
 # ============================================================================
 
 @dataclass
-class ExpansionOptions:
+class ExpansionOptions(SerializableMixin):
     """
     Opciones para configurar el comportamiento de la expansión de siglas.
 
@@ -60,6 +89,7 @@ class ExpansionOptions:
         expand_only_first: Expandir solo la primera ocurrencia de cada sigla
         exclude: Lista de siglas a ignorar
         include: Lista de siglas a incluir (si se proporciona, solo estas se expanden)
+        custom_dictionaries: Rutas a diccionarios JSON/CSV adicionales
     """
     format: Literal['plain', 'html', 'structured'] = 'plain'
     force_expansion: Optional[bool] = None
@@ -69,10 +99,11 @@ class ExpansionOptions:
     expand_only_first: bool = False
     exclude: list[str] = field(default_factory=list)
     include: Optional[list[str]] = None
+    custom_dictionaries: list[str] = field(default_factory=list)
 
 
 @dataclass
-class Position:
+class Position(SerializableMixin):
     """
     Posición de una sigla en el texto.
 
@@ -85,7 +116,7 @@ class Position:
 
 
 @dataclass
-class ExpandedAcronym:
+class ExpandedAcronym(SerializableMixin):
     """
     Información pública de una sigla expandida.
 
@@ -95,16 +126,18 @@ class ExpandedAcronym:
         position: Posición en el texto original
         has_multiple_meanings: Indica si tiene múltiples significados posibles
         all_meanings: Lista de todos los significados posibles (si aplica)
+        source: Fuente opcional si procede de un diccionario personalizado
     """
     acronym: str
     expansion: str
     position: Position
     has_multiple_meanings: bool = False
     all_meanings: Optional[list[str]] = None
+    source: Optional[str] = None
 
 
 @dataclass
-class Stats:
+class Stats(SerializableMixin):
     """
     Estadísticas de procesamiento de un texto.
 
@@ -119,7 +152,7 @@ class Stats:
 
 
 @dataclass
-class StructuredOutput:
+class StructuredOutput(SerializableMixin):
     """
     Salida estructurada con metadata completa del procesamiento.
 
@@ -135,8 +168,50 @@ class StructuredOutput:
     stats: Stats
 
 
+OmittedAcronymReason = Literal[
+    'excluded',
+    'not-in-include',
+    'expand-only-first',
+    'ambiguous-unresolved',
+    'inside-url',
+    'inside-email',
+    'inside-code-block',
+    'inside-inline-code',
+    'not-found',
+]
+
+
 @dataclass
-class GlobalConfig:
+class OmittedAcronym(SerializableMixin):
+    """
+    Información de una sigla detectada pero no expandida.
+
+    Attributes:
+        acronym: Sigla original detectada
+        position: Posición en el texto original
+        reason: Motivo estable por el que se omitió la expansión
+        details: Detalle opcional para depuración o UI
+    """
+    acronym: str
+    position: Position
+    reason: OmittedAcronymReason
+    details: Optional[str] = None
+
+
+@dataclass
+class DiagnosticOutput(StructuredOutput):
+    """
+    Salida estructurada con trazabilidad de siglas omitidas.
+
+    Extiende StructuredOutput añadiendo omitted_acronyms, una lista de
+    detecciones que no se expandieron por filtros, contexto protegido,
+    repetición o ambigüedad.
+    """
+    omitted_acronyms: list[OmittedAcronym] = field(default_factory=list)
+
+
+@dataclass
+class GlobalConfig(SerializableMixin):
     """
     Configuración global del paquete.
 
@@ -149,7 +224,7 @@ class GlobalConfig:
 
 
 @dataclass
-class AcronymSearchResult:
+class AcronymSearchResult(SerializableMixin):
     """
     Resultado de búsqueda de una sigla en el diccionario.
 
@@ -157,14 +232,16 @@ class AcronymSearchResult:
         acronym: La sigla buscada
         meanings: Lista de significados encontrados
         has_duplicates: Indica si hay múltiples significados
+        source: Fuente opcional si procede de un diccionario personalizado
     """
     acronym: str
     meanings: list[str]
     has_duplicates: bool
+    source: Optional[str] = None
 
 
 @dataclass
-class DictionaryStats:
+class DictionaryStats(SerializableMixin):
     """
     Estadísticas del diccionario de siglas.
 
@@ -176,6 +253,112 @@ class DictionaryStats:
     total_acronyms: int
     acronyms_with_duplicates: int
     acronyms_with_punctuation: int
+
+
+@dataclass
+class DictionaryInfo(SerializableMixin):
+    """
+    Metadata del diccionario cargado.
+    """
+    dictionary_version: str
+    build_date: str
+    total_entries: int
+    total_acronyms: int
+    total_variants: int
+    conflicts: int
+    custom_dictionaries: list[str] = field(default_factory=list)
+    sources: list[str] = field(default_factory=list)
+
+
+@dataclass
+class ExtractedAcronym(SerializableMixin):
+    """
+    Sigla detectada sin modificar el texto.
+    """
+    acronym: str
+    position: Position
+    known: bool
+    expansion: Optional[str] = None
+    has_multiple_meanings: bool = False
+    all_meanings: Optional[list[str]] = None
+    omitted_reason: Optional[OmittedAcronymReason] = None
+    details: Optional[str] = None
+    repeated: bool = False
+    occurrence_index: int = 1
+    total_occurrences: int = 1
+    source: Optional[str] = None
+
+
+@dataclass
+class ExtractionOutput(SerializableMixin):
+    """
+    Resultado de extracción de siglas sin expansión inline.
+    """
+    original_text: str
+    acronyms: list[ExtractedAcronym]
+
+
+@dataclass
+class GlossaryEntry(SerializableMixin):
+    """
+    Entrada única de glosario.
+    """
+    acronym: str
+    expansion: str
+    count: int
+    first_position: Position
+    has_multiple_meanings: bool = False
+    all_meanings: Optional[list[str]] = None
+    source: Optional[str] = None
+
+
+@dataclass
+class AuditStats(SerializableMixin):
+    """
+    Estadísticas de auditoría de un texto o documento.
+    """
+    total_detected: int
+    total_known: int
+    total_unknown: int
+    total_expanded: int
+    total_omitted: int
+    total_repeated: int
+
+
+@dataclass
+class AuditReport(SerializableMixin):
+    """
+    Informe de auditoría sin modificar el documento.
+    """
+    original_text: str
+    stats: AuditStats
+    acronyms: list[ExtractedAcronym]
+    glossary: list[GlossaryEntry]
+    omitted_acronyms: list[OmittedAcronym]
+    unknown_acronyms: list[ExtractedAcronym]
+
+
+@dataclass
+class BatchResult(SerializableMixin):
+    """
+    Resultado de procesar un archivo dentro de un lote.
+    """
+    input_path: str
+    output_path: str
+    processed: bool
+    error: Optional[str] = None
+
+
+@dataclass
+class BenchmarkResult(SerializableMixin):
+    """
+    Resultado de benchmark simple de expansión.
+    """
+    iterations: int
+    total_seconds: float
+    average_ms: float
+    characters: int
+    characters_per_second: float
 
 
 # ============================================================================
@@ -197,6 +380,7 @@ class MatchInfo:
         confidence: Nivel de confianza del match (0.0-1.0)
         has_multiple_meanings: Si tiene múltiples significados posibles
         all_meanings: Todos los significados posibles
+        source: Fuente opcional
     """
     original: str
     expansion: str
@@ -205,6 +389,40 @@ class MatchInfo:
     confidence: float = 1.0
     has_multiple_meanings: bool = False
     all_meanings: Optional[list[str]] = None
+    source: Optional[str] = None
+
+
+@dataclass
+class OmittedMatchInfo:
+    """
+    Información interna de un match omitido.
+
+    Uso interno del matcher para construir salidas de diagnóstico.
+    """
+    original: str
+    start_pos: int
+    end_pos: int
+    reason: OmittedAcronymReason
+    details: Optional[str] = None
+
+
+@dataclass
+class MatchRunStats:
+    """
+    Estadísticas internas del proceso de matching.
+    """
+    total_acronyms_found: int = 0
+    ambiguous_not_expanded: int = 0
+
+
+@dataclass
+class MatchRunResult:
+    """
+    Resultado interno completo de una ejecución del matcher.
+    """
+    matches: list[MatchInfo]
+    omitted_matches: list[OmittedMatchInfo]
+    stats: MatchRunStats
 
 
 @dataclass
@@ -220,12 +438,16 @@ class DictionaryEntry:
         significado: Definición completa
         variants: Lista de variantes alternativas
         priority: Prioridad para resolución de conflictos (mayor = más prioritario)
+        source: Fuente opcional
+        context_keywords: Palabras clave para resolver ambigüedad por contexto
     """
     id: str
     original: str
     significado: str
     variants: list[str]
     priority: int = 100
+    source: Optional[str] = None
+    context_keywords: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -244,3 +466,4 @@ class InternalOptions:
     expand_only_first: bool = False
     exclude: list[str] = field(default_factory=list)
     include: Optional[list[str]] = None
+    custom_dictionaries: list[str] = field(default_factory=list)

@@ -4,8 +4,6 @@ Tests para la configuración global de legal-expand
 Verifica el sistema de configuración global y opciones.
 """
 
-import pytest
-
 from legal_expand import (
     configurar_globalmente,
     expandir_siglas,

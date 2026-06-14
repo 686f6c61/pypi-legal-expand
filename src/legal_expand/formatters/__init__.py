@@ -35,15 +35,10 @@ Los usuarios pueden registrar formatters personalizados:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Union
-
 from .base import Formatter
 from .html import HtmlFormatter
 from .plain_text import PlainTextFormatter
 from .structured import StructuredFormatter
-
-if TYPE_CHECKING:
-    from ..types import MatchInfo, StructuredOutput
 
 __all__ = [
     'Formatter',

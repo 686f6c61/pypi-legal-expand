@@ -117,8 +117,8 @@ class HtmlFormatter(Formatter):
 
         # PASO 2: Procesar desde el final hacia el inicio
         for match in sorted_matches:
-            # PASO 3: Extraer texto original de la sigla
-            acronym_text = original_text[match.start_pos:match.end_pos]
+            # PASO 3: Usar la forma resuelta por el matcher
+            acronym_text = match.original
 
             # PASO 4: Generar reemplazo con <abbr> + expansión inline
             escaped_expansion = self.escape_html(match.expansion)

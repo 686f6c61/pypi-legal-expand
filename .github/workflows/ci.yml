@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
 
     steps:
       - name: Checkout code
@@ -46,6 +46,14 @@ jobs:
         run: |
           pip install build
           python -m build
+
+      - name: Smoke test wheel install
+        run: |
+          python -m venv /tmp/legal-expand-wheel
+          /tmp/legal-expand-wheel/bin/python -m pip install --upgrade pip
+          /tmp/legal-expand-wheel/bin/python -m pip install dist/*.whl
+          /tmp/legal-expand-wheel/bin/python -c "from legal_expand import __version__, expandir_siglas; assert __version__ == '1.3.0'; assert 'Agencia Estatal' in expandir_siglas('AEAT')"
+          /tmp/legal-expand-wheel/bin/legal-expand info
 
   lint:
     name: Code quality

@@ -48,7 +48,7 @@ from .base import Formatter
 from .plain_text import PlainTextFormatter
 
 if TYPE_CHECKING:
-    from ..types import MatchInfo
+    from ..types import MatchInfo, MatchRunStats
 
 from ..types import ExpandedAcronym, Position, Stats, StructuredOutput
 
@@ -83,6 +83,25 @@ class StructuredFormatter(Formatter):
         evitando duplicación de código.
     """
 
+    def format_with_stats(
+        self,
+        original_text: str,
+        matches: list['MatchInfo'],
+        stats: 'MatchRunStats'
+    ) -> StructuredOutput:
+        """
+        Formatea usando estadísticas explícitas del matcher.
+
+        Args:
+            original_text: Texto original sin modificar
+            matches: Lista de matches expandidos
+            stats: Estadísticas calculadas durante el matching
+
+        Returns:
+            StructuredOutput con estadísticas coherentes
+        """
+        return self._build_output(original_text, matches, stats)
+
     def format(self, original_text: str, matches: list['MatchInfo']) -> StructuredOutput:
         """
         Formatea el texto y genera metadata estructurada.
@@ -94,6 +113,15 @@ class StructuredFormatter(Formatter):
         Returns:
             StructuredOutput con metadata completa
         """
+        return self._build_output(original_text, matches)
+
+    def _build_output(
+        self,
+        original_text: str,
+        matches: list['MatchInfo'],
+        stats: 'MatchRunStats | None' = None
+    ) -> StructuredOutput:
+        """Construye el StructuredOutput compartido por ambas rutas."""
         # PASO 1: Generar texto expandido reutilizando PlainTextFormatter
         plain_formatter = PlainTextFormatter()
         expanded_text = plain_formatter.format(original_text, matches)
@@ -105,18 +133,27 @@ class StructuredFormatter(Formatter):
                 expansion=match.expansion,
                 position=Position(start=match.start_pos, end=match.end_pos),
                 has_multiple_meanings=match.has_multiple_meanings,
-                all_meanings=match.all_meanings
+                all_meanings=match.all_meanings,
+                source=match.source
             )
             for match in matches
         ]
 
         # PASO 3: Calcular estadísticas de procesamiento
-        total_acronyms_found = len(matches)
+        total_acronyms_found = (
+            stats.total_acronyms_found
+            if stats is not None
+            else len(matches)
+        )
         total_expanded = sum(
             1 for m in matches
             if not m.has_multiple_meanings or m.expansion
         )
-        ambiguous_not_expanded = total_acronyms_found - total_expanded
+        ambiguous_not_expanded = (
+            stats.ambiguous_not_expanded
+            if stats is not None
+            else total_acronyms_found - total_expanded
+        )
 
         # PASO 4: Retornar objeto estructurado
         return StructuredOutput(
