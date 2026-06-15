@@ -24,7 +24,8 @@ Salida:  "La AEAT (Agencia Estatal de Administración Tributaria) notifica el IV
 - **Detección inteligente** de variantes (AEAT, A.E.A.T., A.E.A.T)
 - **Múltiples formatos**: texto plano, HTML semántico, JSON estructurado
 - **Diagnóstico de omisiones**: razones estables para siglas omitidas por filtros o contexto
-- **CLI oficial**: expansión, auditoría, glosario, batch, metadata y benchmark desde terminal
+- **Enriquecimiento BOE opt-in**: detecta citas legales, enlaza normas y marca dudas sin inventar referencias
+- **CLI oficial**: expansión, auditoría, glosario, batch, metadata, benchmark y BOE desde terminal
 - **Glosarios y auditoría**: exportación Markdown, CSV y JSON
 - **Procesamiento de documentos**: `.txt`, `.md`, `.html` y carpetas completas
 - **Diccionarios personalizados**: añade siglas propias desde JSON o CSV
@@ -40,7 +41,7 @@ Prueba el paquete sin instalar nada:
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/686f6c61/pypi-legal-expand/blob/main/legal_expand_demo.ipynb)
 
-El notebook incluye ejemplos de todos los casos de uso: expansión básica, formatos de salida, configuración global, documentos reales y herramientas interactivas.
+El notebook incluye ejemplos de todos los casos de uso: expansión básica, formatos de salida, configuración global, documentos reales, herramientas interactivas y una sección BOE con matriz de 25 casos, referencias ambiguas, normativa UE no soportada y overrides manuales.
 
 ## Índice
 
@@ -51,6 +52,7 @@ El notebook incluye ejemplos de todos los casos de uso: expansión básica, form
 - [Formatos de salida](#formatos-de-salida)
 - [Diagnóstico de omisiones](#diagnóstico-de-omisiones)
 - [Glosario y auditoría](#glosario-y-auditoría)
+- [Enriquecimiento BOE](#enriquecimiento-boe)
 - [Documentos y batch](#documentos-y-batch)
 - [Diccionarios personalizados](#diccionarios-personalizados)
 - [Control global y override](#control-global-y-override)
@@ -99,6 +101,12 @@ legal-expand batch docs/ docs-expandidos/ --format html
 # Metadata y benchmark
 legal-expand info
 legal-expand benchmark sentencia.txt --iterations 500
+
+# Informe de referencias BOE, sin consultar red por defecto
+legal-expand boe sentencia.txt --output referencias-boe.md
+
+# Enriquecimiento con API BOE y caché
+legal-expand boe sentencia.txt --mode cache-first --output referencias-boe.md
 ```
 
 ## Uso básico
@@ -263,6 +271,108 @@ json_glosario = exportar_glosario(texto, 'json')
 reporte = auditar_texto(texto)
 print(reporte.stats.to_dict())
 ```
+
+## Enriquecimiento BOE
+
+`legal-expand` incluye un asistente determinista para detectar referencias legales españolas y generar un informe con enlaces al BOE. Esta función está pensada para revisar documentos jurídicos, sentencias, escritos administrativos, apuntes de oposición o informes donde ya aparecen citadas normas concretas.
+
+La herramienta no interpreta el documento ni decide qué artículos deberían aplicarse. Solo trabaja con referencias explícitas o suficientemente identificables. Si el texto dice `art. 14.2 de la Ley 39/2015`, la referencia es clara y puede resolverse. Si el texto dice simplemente `el artículo 14` o `la Ley 2/2023`, la herramienta puede marcarlo como ambiguo o pendiente de revisión, porque no hay información suficiente para elegir una norma con seguridad.
+
+Esta limitación es deliberada. En derecho, enlazar una norma incorrecta es peor que no enlazar ninguna. Por eso `legal-expand` prefiere dejar una referencia pendiente de revisión antes que inventar una correspondencia.
+
+### Uso rápido
+
+Por defecto el comando BOE funciona en modo `offline`: detecta referencias, usa aliases conservadores incluidos en el paquete y no consulta red. Esto permite resultados reproducibles incluso en CI o entornos sin acceso estable al BOE.
+
+```bash
+legal-expand boe sentencia.txt --output referencias-boe.md
+legal-expand boe sentencia.txt --report-format json --output referencias-boe.json
+```
+
+Si quieres que intente completar artículos, disposiciones o anexos consultando la API de legislación consolidada del BOE, activa `cache-first` u `online`.
+
+```bash
+legal-expand boe sentencia.txt --mode cache-first --timeout 4 --output referencias-boe.md
+```
+
+El modo `cache-first` reutiliza respuestas guardadas y solo consulta BOE cuando no hay caché válida. El modo `online` fuerza la consulta. En ambos casos se aplican timeouts para que una caída o lentitud de BOE no bloquee indefinidamente el flujo.
+
+### API Python
+
+```python
+from legal_expand import BOEOptions, detectar_referencias_boe, enriquecer_boe
+
+texto = 'La notificación electrónica se rige por el art. 14.2 de la Ley 39/2015.'
+
+# Detección offline y determinista
+informe = detectar_referencias_boe(texto)
+print(informe.to_json(indent=2))
+
+# Enriquecimiento opcional con API BOE
+informe_boe = enriquecer_boe(texto, BOEOptions(mode='cache-first'))
+```
+
+### Cuándo funciona bien
+
+Funciona especialmente bien cuando el documento contiene citas jurídicas normales y completas: `art. 217 LEC`, `artículo 24 de la Constitución Española`, `art. 14.2 de la Ley 39/2015`, `Real Decreto 203/2021` o `Ley Orgánica 3/2018`. También reconoce algunas formas abreviadas habituales, como `RD 203/2021`, `LO 3/2018`, `disp. final séptima`, `art. 14.2.a)` y `artículo 14 bis`.
+
+En estos casos, la herramienta puede identificar la norma, generar la URL oficial del BOE y, cuando el modo online está activado, intentar localizar el artículo, disposición o anexo dentro del índice oficial de la norma consolidada. El resultado es un informe trazable con el texto detectado, el estado de resolución, la norma, la unidad citada y la URL.
+
+También funciona bien para documentos de preparación de oposiciones. Por ejemplo, puede separar una lista de normas completas, que solo necesitan URL, de referencias concretas como `arts. 13 y 14 de la Ley 39/2015`, que pueden requerir bloques específicos.
+
+### Cuándo no debe resolver automáticamente
+
+No todas las referencias legales son seguras. Algunas normas comparten número y año, especialmente si hay normativa autonómica publicada en BOE. Por ejemplo, `Ley 2/2023` puede referirse a normas distintas si no se indica fecha, título o contexto suficiente. En cambio, `Ley 2/2023, de 20 de febrero` sí identifica la norma estatal de protección de informantes incluida en los aliases conservadores.
+
+Tampoco se resuelven automáticamente referencias incompletas como `el artículo 14`, menciones genéricas como `la ley administrativa`, ni frases donde aparecen varias normas y después se cita un artículo sin aclarar a cuál pertenece. En esos casos, la salida marca la referencia como ambigua, no encontrada o pendiente de revisión.
+
+La herramienta tampoco sustituye bases de datos jurídicas ni realiza interpretación legal. No resuelve jurisprudencia, no analiza sentencias para inferir doctrina y no propone artículos aplicables que no estén citados en el texto. Las referencias de la Unión Europea, como `Reglamento (UE) 2016/679` o `RGPD`, se marcan como no soportadas por esta función BOE.
+
+### Estados del informe
+
+El informe usa estados estables para que puedas auditar el resultado:
+
+- `resolved`: referencia resuelta con bloque concreto de BOE.
+- `resolved-url-only`: norma enlazada, sin insertar texto de artículo.
+- `manual`: referencia confirmada por la persona usuaria mediante overrides.
+- `needs-boe-search`: necesita consulta BOE para intentar resolver.
+- `ambiguous`: hay demasiada duda para elegir una norma.
+- `not-found`: no se encontró una norma o unidad suficientemente identificable.
+- `unsupported`: referencia fuera del alcance BOE, por ejemplo normativa UE.
+- `network-error`: BOE no respondió dentro del timeout o falló la consulta.
+
+### Revisión y edición manual
+
+Cuando una referencia no se puede resolver con seguridad, puedes añadirla manualmente mediante un archivo JSON de overrides. Esto permite corregir ambigüedades sin debilitar el comportamiento determinista de la herramienta.
+
+Las referencias añadidas manualmente aparecen marcadas como `manual` en el informe. Así se distingue siempre entre lo detectado automáticamente por `legal-expand` y lo confirmado por una persona que conoce el documento.
+
+```json
+{
+  "aliases": {
+    "ley de informantes": {
+      "boe_id": "BOE-A-2023-4513",
+      "title": "Ley 2/2023, de 20 de febrero"
+    }
+  },
+  "references": [
+    {
+      "text": "la norma especial de informantes",
+      "boe_id": "BOE-A-2023-4513",
+      "title": "Ley 2/2023, de 20 de febrero",
+      "unit": "artículo 42"
+    }
+  ]
+}
+```
+
+```bash
+legal-expand boe informe.md --overrides boe-overrides.json --output referencias-boe.md
+```
+
+### Nota legal
+
+Los textos consolidados del BOE tienen carácter meramente informativo. El informe generado por `legal-expand` incluye este aviso para recordar que las referencias deben verificarse antes de usarlas en un acto jurídico, una resolución o un documento profesional final.
 
 ## Documentos y batch
 
@@ -839,6 +949,38 @@ Exporta el glosario como `markdown`, `csv` o `json`.
 Genera informe de auditoría con conocidas, desconocidas, omitidas, repetidas y glosario.
 
 **Retorna:** `AuditReport`
+
+### detectar_referencias_boe(texto, opciones?)
+
+Detecta referencias legales españolas sin consultar red. Usa aliases conservadores, protege URLs/emails/código y marca referencias dudosas como ambiguas o pendientes.
+
+**Retorna:** `BOEEnrichmentOutput`
+
+### enriquecer_boe(texto, opciones?)
+
+Detecta referencias y, si `BOEOptions.mode` es `cache-first` u `online`, intenta completar normas y bloques concretos mediante la API de legislación consolidada del BOE.
+
+**Retorna:** `BOEEnrichmentOutput`
+
+### boe_report_to_markdown(informe)
+
+Convierte un `BOEEnrichmentOutput` en un informe Markdown legible.
+
+### BOEOptions
+
+```python
+@dataclass
+class BOEOptions:
+    mode: Literal['offline', 'cache-first', 'online'] = 'offline'
+    timeout_seconds: float = 4.0
+    max_results: int = 5
+    include_unit_text: bool = True
+    infer_single_active_norm: bool = True
+    use_curated_aliases: bool = True
+    cache_path: Optional[str] = None
+    cache_ttl_days: int = 30
+    overrides_path: Optional[str] = None
+```
 
 ### expandir_documento(), procesar_archivo(), procesar_directorio()
 

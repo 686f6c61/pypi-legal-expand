@@ -338,6 +338,117 @@ class AuditReport(SerializableMixin):
     unknown_acronyms: list[ExtractedAcronym]
 
 
+BOEMode = Literal['offline', 'cache-first', 'online']
+BOEReferenceKind = Literal[
+    'boe-id',
+    'norm',
+    'unit',
+    'unsupported',
+]
+BOEReferenceStatus = Literal[
+    'manual',
+    'resolved',
+    'resolved-url-only',
+    'needs-boe-search',
+    'ambiguous',
+    'unsupported',
+    'not-found',
+    'network-error',
+]
+
+
+@dataclass
+class BOEOptions(SerializableMixin):
+    """
+    Opciones para detección y enriquecimiento de referencias BOE.
+
+    La integración BOE es opt-in y conservadora: nunca interpreta el
+    documento ni inventa artículos, solo enlaza referencias explícitas o
+    confirmadas mediante overrides/manual.
+    """
+    mode: BOEMode = 'offline'
+    timeout_seconds: float = 4.0
+    max_results: int = 5
+    include_unit_text: bool = True
+    infer_single_active_norm: bool = True
+    use_curated_aliases: bool = True
+    cache_path: Optional[str] = None
+    cache_ttl_days: int = 30
+    overrides_path: Optional[str] = None
+
+
+@dataclass
+class BOENorm(SerializableMixin):
+    """
+    Norma BOE resuelta o candidata.
+    """
+    boe_id: str
+    title: str
+    url: str
+    official_number: Optional[str] = None
+    rank: Optional[str] = None
+    source: str = 'boe'
+
+
+@dataclass
+class BOEUnitBlock(SerializableMixin):
+    """
+    Bloque concreto dentro de una norma consolidada: artículo, disposición o anexo.
+    """
+    unit: str
+    block_id: Optional[str]
+    title: str
+    url: str
+    text: Optional[str] = None
+    source: str = 'boe'
+
+
+@dataclass
+class BOEReference(SerializableMixin):
+    """
+    Referencia legal detectada en un texto.
+
+    status distingue entre lo resuelto automáticamente, lo añadido por una
+    persona, lo ambiguo y lo que queda pendiente para no crear falsas certezas.
+    """
+    original_text: str
+    position: Position
+    kind: BOEReferenceKind
+    status: BOEReferenceStatus
+    norm_text: Optional[str] = None
+    unit_text: Optional[str] = None
+    norm: Optional[BOENorm] = None
+    unit_blocks: list[BOEUnitBlock] = field(default_factory=list)
+    confidence: float = 0.0
+    source: str = 'detector'
+    reason: Optional[str] = None
+    candidates: list[BOENorm] = field(default_factory=list)
+
+
+@dataclass
+class BOEEnrichmentStats(SerializableMixin):
+    """
+    Resumen estable del informe BOE.
+    """
+    total_detected: int
+    total_resolved: int
+    total_manual: int
+    total_ambiguous: int
+    total_unresolved: int
+    total_unsupported: int
+
+
+@dataclass
+class BOEEnrichmentOutput(SerializableMixin):
+    """
+    Salida completa de detección/enriquecimiento BOE.
+    """
+    original_text: str
+    references: list[BOEReference]
+    stats: BOEEnrichmentStats
+    warnings: list[str] = field(default_factory=list)
+
+
 @dataclass
 class BatchResult(SerializableMixin):
     """

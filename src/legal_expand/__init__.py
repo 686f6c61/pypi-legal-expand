@@ -48,7 +48,7 @@ Example:
 
 from __future__ import annotations
 
-__version__ = "1.3.1"
+__version__ = "1.4.0"
 __author__ = "686f6c61"
 
 # ============================================================================
@@ -72,6 +72,12 @@ from .documents import (
     expandir_documento,
     procesar_archivo,
     procesar_directorio,
+)
+from .boe import (
+    BOEClient,
+    boe_report_to_markdown,
+    detectar_referencias_boe,
+    enriquecer_boe,
 )
 
 # ============================================================================
@@ -100,6 +106,14 @@ from .types import (
     AuditStats,
     BatchResult,
     BenchmarkResult,
+    BOEEnrichmentOutput,
+    BOEEnrichmentStats,
+    BOENorm,
+    BOEOptions,
+    BOEReference,
+    BOEReferenceKind,
+    BOEReferenceStatus,
+    BOEUnitBlock,
     DictionaryInfo,
     DictionaryStats,
     DiagnosticOutput,
@@ -139,6 +153,10 @@ __all__ = [
     "listar_siglas",
     "obtener_estadisticas",
     "obtener_info_diccionario",
+    "detectar_referencias_boe",
+    "enriquecer_boe",
+    "boe_report_to_markdown",
+    "BOEClient",
     # Configuración global
     "configurar_globalmente",
     "obtener_configuracion_global",
@@ -158,6 +176,14 @@ __all__ = [
     "AuditStats",
     "BatchResult",
     "BenchmarkResult",
+    "BOEOptions",
+    "BOENorm",
+    "BOEUnitBlock",
+    "BOEReference",
+    "BOEReferenceKind",
+    "BOEReferenceStatus",
+    "BOEEnrichmentStats",
+    "BOEEnrichmentOutput",
     "DictionaryInfo",
     "OmittedAcronym",
     "OmittedAcronymReason",

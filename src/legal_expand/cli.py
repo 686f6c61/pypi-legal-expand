@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from .boe import boe_report_to_markdown, enriquecer_boe
 from .core.engine import (
     auditar_texto,
     benchmark_texto,
@@ -19,10 +20,10 @@ from .core.engine import (
     obtener_info_diccionario,
 )
 from .documents import expandir_documento, procesar_archivo, procesar_directorio
-from .types import AuditReport, ExpansionOptions, StructuredOutput
+from .types import AuditReport, BOEOptions, ExpansionOptions, StructuredOutput
 
 
-COMMANDS = {'expand', 'audit', 'glossary', 'batch', 'info', 'benchmark'}
+COMMANDS = {'expand', 'audit', 'glossary', 'batch', 'info', 'benchmark', 'boe'}
 STDIN_INPUT_HELP = 'Archivo de entrada o - para stdin'
 
 
@@ -156,6 +157,20 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark.add_argument('--encoding', default='utf-8')
     _add_common_options(benchmark)
 
+    boe = subparsers.add_parser('boe', help='Detecta y enlaza referencias BOE')
+    boe.add_argument('input', nargs='?', help=STDIN_INPUT_HELP)
+    boe.add_argument('-o', '--output')
+    boe.add_argument('--report-format', choices=['json', 'markdown'], default='markdown')
+    boe.add_argument('--mode', choices=['offline', 'cache-first', 'online'], default='offline')
+    boe.add_argument('--timeout', type=float, default=4.0)
+    boe.add_argument('--max-results', type=int, default=5)
+    boe.add_argument('--overrides', help='JSON con aliases y referencias manuales')
+    boe.add_argument('--cache-path', help='Carpeta de caché para respuestas BOE')
+    boe.add_argument('--no-curated-aliases', action='store_true')
+    boe.add_argument('--no-infer-single-active-norm', action='store_true')
+    boe.add_argument('--no-unit-text', action='store_true')
+    boe.add_argument('--encoding', default='utf-8')
+
     return parser
 
 
@@ -249,6 +264,28 @@ def run_benchmark(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_boe(args: argparse.Namespace) -> int:
+    text = _read_input(args.input, args.encoding)
+    options = BOEOptions(
+        mode=args.mode,
+        timeout_seconds=args.timeout,
+        max_results=args.max_results,
+        include_unit_text=not args.no_unit_text,
+        infer_single_active_norm=not args.no_infer_single_active_norm,
+        use_curated_aliases=not args.no_curated_aliases,
+        cache_path=args.cache_path,
+        overrides_path=args.overrides,
+    )
+    result = enriquecer_boe(text, options)
+    output = (
+        result.to_json(indent=2)
+        if args.report_format == 'json'
+        else boe_report_to_markdown(result)
+    )
+    _write_output(output, args.output, args.encoding)
+    return 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     args_list = list(sys.argv[1:] if argv is None else argv)
     if not args_list:
@@ -272,6 +309,8 @@ def main(argv: Optional[list[str]] = None) -> int:
             return run_info(args)
         if args.command == 'benchmark':
             return run_benchmark(args)
+        if args.command == 'boe':
+            return run_boe(args)
     except Exception as exc:
         sys.stderr.write(f"legal-expand: error: {exc}\n")
         return 1

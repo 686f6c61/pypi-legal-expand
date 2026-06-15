@@ -5,6 +5,35 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.4.0] - 2026-06-15
+
+### Añadido
+
+- Asistente BOE opt-in con `detectar_referencias_boe()` y `enriquecer_boe()` para localizar referencias legales españolas sin modificar el texto original.
+- Subcomando `legal-expand boe` con salida Markdown o JSON, modo `offline` por defecto y modos `cache-first`/`online` para consultar la API de legislación consolidada del BOE cuando se solicite.
+- Tipos públicos `BOEOptions`, `BOENorm`, `BOEUnitBlock`, `BOEReference`, `BOEEnrichmentStats` y `BOEEnrichmentOutput`.
+- Resolución conservadora de referencias frecuentes como `art. 217 LEC`, `artículo 24 de la Constitución Española`, `art. 14.2 de la Ley 39/2015`, `Ley Orgánica 3/2018`, `Real Decreto 203/2021`, anexos y disposiciones.
+- Soporte de formas abreviadas frecuentes como `RD 203/2021`, `LO 3/2018`, `disp. final séptima`, artículos con subletra (`art. 14.2.a)`) y artículos con sufijo (`artículo 14 bis`).
+- Overrides manuales en JSON para añadir aliases o referencias que el detector no pueda resolver con seguridad, marcadas como `manual` en el informe.
+- Estados estables para auditoría: `resolved`, `resolved-url-only`, `manual`, `needs-boe-search`, `ambiguous`, `not-found`, `unsupported` y `network-error`.
+- Demo de Google Colab actualizada a `legal-expand==1.4.0`, con sección BOE, matriz de 25 casos, CLI `legal-expand boe` y ejemplo de overrides manuales.
+
+### Cambiado
+
+- README ampliado con explicación de expectativas, casos de uso, límites deliberados, edición manual y aviso sobre el carácter informativo de los textos consolidados del BOE.
+
+### Seguridad del comportamiento
+
+- El enriquecimiento BOE no se mezcla con `expandir_siglas()` y no consulta red salvo que se use el subcomando/API BOE.
+- `Ley 2/2023` sin fecha ni título se marca como ambigua para evitar resolver una norma incorrecta.
+- Las referencias dentro de URLs, emails, bloques de código y código inline se ignoran.
+- La normativa UE, incluido `RGPD`, se marca como no soportada por esta función, en lugar de intentar resolverla como BOE.
+
+### Verificado
+
+- Añadida una matriz de 25 casos de uso y edge cases para textos tipo sentencia, recurso administrativo, apuntes de oposición, normas completas, referencias ambiguas, abreviaturas procesales, contextos protegidos, overrides manuales y cliente BOE con fixtures.
+- Suite completa validada: 105 tests.
+
 ## [1.3.1] - 2026-06-15
 
 ### Cambiado
