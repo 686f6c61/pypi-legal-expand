@@ -5,6 +5,18 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.3.1] - 2026-06-15
+
+### Cambiado
+
+- Demo de Google Colab rehecha para `legal-expand==1.3.1`, con recorrido guiado por CLI, auditoría, glosarios, procesamiento batch, HTML seguro, diccionarios personalizados, configuración global y benchmark.
+- Badges del README y del notebook actualizados a shields.io para reflejar la versión publicada en PyPI y las versiones Python soportadas.
+
+### Verificado
+
+- El notebook mantiene JSON válido y sus celdas Python principales se ejecutan contra la API pública actual.
+- Los ejemplos CLI de la demo se validan con el comando instalable `legal-expand`.
+
 ## [1.3.0] - 2026-06-14
 
 ### Añadido

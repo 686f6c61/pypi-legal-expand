@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "legal-expand"
-version = "1.3.0"
+version = "1.3.1"
 description = "Smart expansion, CLI, audit, glossary and batch processing for Spanish legal acronyms. 646 verified acronyms from RAE, BOE and DPEJ. | Expansión inteligente de siglas legales españolas."
 readme = "README.md"
 license = "MIT"
