@@ -14,6 +14,7 @@ import time
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Optional
 
@@ -689,6 +690,137 @@ def _add_manual_references(
             consumed.append((index, end))
 
 
+ReferenceAdder = Callable[[BOEReference], None]
+
+
+def _build_reference_adder(
+    text: str,
+    references: list[BOEReference],
+    consumed: list[tuple[int, int]],
+    overrides: dict[str, Any],
+) -> ReferenceAdder:
+    def add(reference: BOEReference) -> None:
+        if _is_protected(text, reference.position.start, reference.position.end):
+            return
+        references.append(_apply_reference_override(reference, overrides))
+        consumed.append((reference.position.start, reference.position.end))
+
+    return add
+
+
+def _detect_direct_boe_ids(text: str, add: ReferenceAdder) -> None:
+    for match in _DIRECT_BOE_RE.finditer(text):
+        boe_id = match.group(0)
+        add(_reference(
+            boe_id, match.start(), match.end(), 'boe-id', 'resolved-url-only',
+            norm_text=boe_id,
+            norm=_norm(boe_id, boe_id, source='explicit-boe-id'),
+            confidence=1.0,
+            source='explicit-boe-id',
+            reason='explicit-boe-id',
+        ))
+
+
+def _detect_multi_norm_references(text: str, add: ReferenceAdder) -> None:
+    for match in _MULTI_NORM_RE.finditer(text):
+        add(_reference(
+            match.group(0), match.start(), match.end(), 'unit', 'ambiguous',
+            unit_text=match.group('unit_text'),
+            confidence=0.2,
+            reason='multiple-norms-for-same-unit',
+        ))
+
+
+def _detect_unit_then_eu_references(
+    text: str,
+    consumed: list[tuple[int, int]],
+    add: ReferenceAdder,
+) -> None:
+    for match in _UNIT_THEN_EU_RE.finditer(text):
+        if _overlaps(match, consumed):
+            continue
+        add(_reference(
+            match.group(0), match.start(), match.end(), 'unsupported', 'unsupported',
+            norm_text=match.group('norm'),
+            unit_text=match.group('unit_text'),
+            confidence=1.0,
+            reason='non-boe-eu-reference',
+        ))
+
+
+def _detect_unit_then_norm_references(
+    text: str,
+    options: BOEOptions,
+    overrides: dict[str, Any],
+    consumed: list[tuple[int, int]],
+    add: ReferenceAdder,
+) -> None:
+    for match in _UNIT_THEN_NORM_RE.finditer(text):
+        if not _overlaps(match, consumed):
+            add(_build_unit_reference(match, options, overrides))
+
+
+def _detect_eu_only_references(
+    text: str,
+    consumed: list[tuple[int, int]],
+    add: ReferenceAdder,
+) -> None:
+    for match in _EU_ONLY_RE.finditer(text):
+        if _overlaps(match, consumed):
+            continue
+        add(_reference(
+            match.group(0), match.start(), match.end(), 'unsupported', 'unsupported',
+            norm_text=match.group('norm'),
+            confidence=1.0,
+            reason='non-boe-eu-reference',
+        ))
+
+
+def _detect_norm_only_references(
+    text: str,
+    options: BOEOptions,
+    overrides: dict[str, Any],
+    consumed: list[tuple[int, int]],
+    add: ReferenceAdder,
+) -> None:
+    for match in _NORM_ONLY_RE.finditer(text):
+        if not _overlaps(match, consumed):
+            add(_build_norm_reference(match, options, overrides))
+
+
+def _build_unit_only_reference(
+    text: str,
+    match: re.Match[str],
+    options: BOEOptions,
+    overrides: dict[str, Any],
+) -> BOEReference:
+    inferred_norm = (
+        _infer_single_active_norm(text, match.start())
+        if options.infer_single_active_norm
+        else None
+    )
+    if inferred_norm:
+        return _build_unit_reference(match, options, overrides, inferred_norm=inferred_norm)
+    return _reference(
+        match.group(0), match.start(), match.end(), 'unit', 'not-found',
+        unit_text=match.group('unit_text'),
+        confidence=0.0,
+        reason='unit-without-norm',
+    )
+
+
+def _detect_unit_only_references(
+    text: str,
+    options: BOEOptions,
+    overrides: dict[str, Any],
+    consumed: list[tuple[int, int]],
+    add: ReferenceAdder,
+) -> None:
+    for match in _UNIT_ONLY_RE.finditer(text):
+        if not _overlaps(match, consumed):
+            add(_build_unit_only_reference(text, match, options, overrides))
+
+
 def detectar_referencias_boe(
     texto: str,
     opciones: Optional[BOEOptions] = None,
@@ -704,82 +836,15 @@ def detectar_referencias_boe(
     override_data = overrides or _load_overrides(options.overrides_path)
     references: list[BOEReference] = []
     consumed: list[tuple[int, int]] = []
+    add = _build_reference_adder(texto, references, consumed, override_data)
 
-    def add(reference: BOEReference) -> None:
-        if _is_protected(texto, reference.position.start, reference.position.end):
-            return
-        references.append(_apply_reference_override(reference, override_data))
-        consumed.append((reference.position.start, reference.position.end))
-
-    for match in _DIRECT_BOE_RE.finditer(texto):
-        if _is_protected(texto, match.start(), match.end()):
-            continue
-        boe_id = match.group(0)
-        add(_reference(
-            boe_id, match.start(), match.end(), 'boe-id', 'resolved-url-only',
-            norm_text=boe_id,
-            norm=_norm(boe_id, boe_id, source='explicit-boe-id'),
-            confidence=1.0,
-            source='explicit-boe-id',
-            reason='explicit-boe-id',
-        ))
-
-    for match in _MULTI_NORM_RE.finditer(texto):
-        add(_reference(
-            match.group(0), match.start(), match.end(), 'unit', 'ambiguous',
-            unit_text=match.group('unit_text'),
-            confidence=0.2,
-            reason='multiple-norms-for-same-unit',
-        ))
-
-    for match in _UNIT_THEN_EU_RE.finditer(texto):
-        if _overlaps(match, consumed):
-            continue
-        add(_reference(
-            match.group(0), match.start(), match.end(), 'unsupported', 'unsupported',
-            norm_text=match.group('norm'),
-            unit_text=match.group('unit_text'),
-            confidence=1.0,
-            reason='non-boe-eu-reference',
-        ))
-
-    for match in _UNIT_THEN_NORM_RE.finditer(texto):
-        if _overlaps(match, consumed):
-            continue
-        add(_build_unit_reference(match, options, override_data))
-
-    for match in _EU_ONLY_RE.finditer(texto):
-        if _overlaps(match, consumed):
-            continue
-        add(_reference(
-            match.group(0), match.start(), match.end(), 'unsupported', 'unsupported',
-            norm_text=match.group('norm'),
-            confidence=1.0,
-            reason='non-boe-eu-reference',
-        ))
-
-    for match in _NORM_ONLY_RE.finditer(texto):
-        if _overlaps(match, consumed):
-            continue
-        add(_build_norm_reference(match, options, override_data))
-
-    for match in _UNIT_ONLY_RE.finditer(texto):
-        if _overlaps(match, consumed):
-            continue
-        inferred_norm = (
-            _infer_single_active_norm(texto, match.start())
-            if options.infer_single_active_norm
-            else None
-        )
-        if inferred_norm:
-            add(_build_unit_reference(match, options, override_data, inferred_norm=inferred_norm))
-        else:
-            add(_reference(
-                match.group(0), match.start(), match.end(), 'unit', 'not-found',
-                unit_text=match.group('unit_text'),
-                confidence=0.0,
-                reason='unit-without-norm',
-            ))
+    _detect_direct_boe_ids(texto, add)
+    _detect_multi_norm_references(texto, add)
+    _detect_unit_then_eu_references(texto, consumed, add)
+    _detect_unit_then_norm_references(texto, options, override_data, consumed, add)
+    _detect_eu_only_references(texto, consumed, add)
+    _detect_norm_only_references(texto, options, override_data, consumed, add)
+    _detect_unit_only_references(texto, options, override_data, consumed, add)
 
     _add_manual_references(texto, references, consumed, override_data)
     references.sort(key=lambda item: item.position.start)
@@ -813,9 +878,8 @@ def enriquecer_boe(
 
 
 def _enrich_reference(reference: BOEReference, options: BOEOptions, client: BOEClient) -> BOEReference:
-    if reference.status in {'unsupported', 'ambiguous', 'not-found', 'manual'}:
-        if reference.status != 'manual':
-            return reference
+    if reference.status in {'unsupported', 'ambiguous', 'not-found'}:
+        return reference
     if reference.norm is None and reference.norm_text and reference.status == 'needs-boe-search':
         norm, candidates = client.resolve_norm(reference.norm_text)
         reference.candidates = candidates

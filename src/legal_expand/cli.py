@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Optional
 
@@ -286,6 +287,17 @@ def run_boe(args: argparse.Namespace) -> int:
     return 0
 
 
+COMMAND_RUNNERS: dict[str, Callable[[argparse.Namespace], int]] = {
+    'expand': run_expand,
+    'audit': run_audit,
+    'glossary': run_glossary,
+    'batch': run_batch,
+    'info': run_info,
+    'benchmark': run_benchmark,
+    'boe': run_boe,
+}
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     args_list = list(sys.argv[1:] if argv is None else argv)
     if not args_list:
@@ -297,20 +309,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parser.parse_args(args_list)
 
     try:
-        if args.command == 'expand':
-            return run_expand(args)
-        if args.command == 'audit':
-            return run_audit(args)
-        if args.command == 'glossary':
-            return run_glossary(args)
-        if args.command == 'batch':
-            return run_batch(args)
-        if args.command == 'info':
-            return run_info(args)
-        if args.command == 'benchmark':
-            return run_benchmark(args)
-        if args.command == 'boe':
-            return run_boe(args)
+        runner = COMMAND_RUNNERS.get(args.command)
+        if runner is not None:
+            return runner(args)
     except Exception as exc:
         sys.stderr.write(f"legal-expand: error: {exc}\n")
         return 1

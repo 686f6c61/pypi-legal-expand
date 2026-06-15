@@ -45,6 +45,7 @@ import json
 import re
 import threading
 from copy import deepcopy
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -73,6 +74,14 @@ from .normalizer import (
 # ÍNDICE DEL DICCIONARIO
 # ============================================================================
 
+@dataclass(frozen=True)
+class DictionaryIndexMetadata:
+    conflicts: list[dict]
+    version: str
+    build_date: str
+    custom_dictionaries: list[str]
+
+
 class DictionaryIndex:
     """
     Índice del diccionario de siglas para búsquedas O(1).
@@ -94,10 +103,7 @@ class DictionaryIndex:
         entries: list[DictionaryEntry],
         exact_index: dict[str, list[str]],
         normalized_index: dict[str, list[str]],
-        conflicts: Optional[list[dict]] = None,
-        version: str = 'unknown',
-        build_date: str = 'unknown',
-        custom_dictionaries: Optional[list[str]] = None
+        metadata: Optional[DictionaryIndexMetadata] = None
     ):
         """
         Inicializa el índice con datos del diccionario.
@@ -111,15 +117,16 @@ class DictionaryIndex:
         self.exact_index = exact_index
         self.normalized_index = normalized_index
         self._entries = entries
-        self.version = version
-        self.build_date = build_date
-        self.custom_dictionaries = custom_dictionaries or []
+        metadata = metadata or DictionaryIndexMetadata([], 'unknown', 'unknown', [])
+        self.version = metadata.version
+        self.build_date = metadata.build_date
+        self.custom_dictionaries = metadata.custom_dictionaries
         self.conflict_map = {
             conflict['sigla']: {
                 'default_id': conflict['defaultId'],
                 'variants': conflict['variants']
             }
-            for conflict in (conflicts or [])
+            for conflict in metadata.conflicts
         }
 
     def lookup(
@@ -324,6 +331,14 @@ class DictionaryIndex:
 # MATCHER DE SIGLAS (SINGLETON)
 # ============================================================================
 
+@dataclass(frozen=True)
+class ResolvedExpansion:
+    expansion: str
+    has_multiple: bool
+    all_meanings: Optional[list[str]]
+    ambiguity_details: Optional[str]
+
+
 class SiglasMatcher:
     """
     Motor de detección de siglas legales (Singleton thread-safe).
@@ -403,10 +418,12 @@ class SiglasMatcher:
             entries=entries,
             exact_index=exact_index,
             normalized_index=normalized_index,
-            conflicts=data.get('conflicts', []),
-            version=data.get('version', 'unknown'),
-            build_date=data.get('buildDate', 'unknown'),
-            custom_dictionaries=custom_paths
+            metadata=DictionaryIndexMetadata(
+                conflicts=data.get('conflicts', []),
+                version=data.get('version', 'unknown'),
+                build_date=data.get('buildDate', 'unknown'),
+                custom_dictionaries=custom_paths,
+            ),
         )
 
     @staticmethod
@@ -616,16 +633,14 @@ class SiglasMatcher:
     @staticmethod
     def _add_omitted_match(
         omitted_matches: list[OmittedMatchInfo],
-        matched: str,
-        start_pos: int,
-        end_pos: int,
+        match: re.Match[str],
         reason: OmittedAcronymReason,
         details: Optional[str] = None
     ) -> None:
         omitted_matches.append(OmittedMatchInfo(
-            original=matched,
-            start_pos=start_pos,
-            end_pos=end_pos,
+            original=match.group(0),
+            start_pos=match.start(),
+            end_pos=match.end(),
             reason=reason,
             details=details
         ))
@@ -661,9 +676,11 @@ class SiglasMatcher:
         if options.exclude and self._contains_normalized(options.exclude, normalized_matched):
             return 'excluded'
 
-        if options.include is not None:
-            if not self._contains_normalized(options.include, normalized_matched):
-                return 'not-in-include'
+        if options.include is not None and not self._contains_normalized(
+            options.include,
+            normalized_matched,
+        ):
+            return 'not-in-include'
 
         if options.expand_only_first:
             if normalized_matched in seen:
@@ -701,43 +718,44 @@ class SiglasMatcher:
         entry: DictionaryEntry,
         normalized_matched: str,
         options: InternalOptions
-    ) -> tuple[str, bool, Optional[list[str]], Optional[str]]:
+    ) -> ResolvedExpansion:
         has_multiple = self._index.has_multiple_meanings(entry.original)
         expansion = entry.significado
         all_meanings = None
 
         if not has_multiple:
-            return expansion, has_multiple, all_meanings, None
+            return ResolvedExpansion(expansion, has_multiple, all_meanings, None)
 
         all_meanings = self._index.get_all_meanings(entry.original)
         manual_resolution = self._manual_duplicate_resolution(options, normalized_matched)
         if manual_resolution:
-            return manual_resolution, has_multiple, all_meanings, None
+            return ResolvedExpansion(manual_resolution, has_multiple, all_meanings, None)
 
         if options.auto_resolve_duplicates:
-            return expansion, has_multiple, all_meanings, None
+            return ResolvedExpansion(expansion, has_multiple, all_meanings, None)
 
-        return expansion, has_multiple, all_meanings, ' | '.join(all_meanings or [])
+        return ResolvedExpansion(
+            expansion,
+            has_multiple,
+            all_meanings,
+            ' | '.join(all_meanings or []),
+        )
 
     @staticmethod
     def _build_match_info(
-        matched: str,
+        match: re.Match[str],
         entry: DictionaryEntry,
-        expansion: str,
-        start_pos: int,
-        end_pos: int,
-        has_multiple: bool,
-        all_meanings: Optional[list[str]],
+        resolved: ResolvedExpansion,
         options: InternalOptions
     ) -> MatchInfo:
         return MatchInfo(
-            original=matched if options.preserve_case else entry.original,
-            expansion=expansion,
-            start_pos=start_pos,
-            end_pos=end_pos,
+            original=match.group(0) if options.preserve_case else entry.original,
+            expansion=resolved.expansion,
+            start_pos=match.start(),
+            end_pos=match.end(),
             confidence=1.0,
-            has_multiple_meanings=has_multiple,
-            all_meanings=all_meanings,
+            has_multiple_meanings=resolved.has_multiple,
+            all_meanings=resolved.all_meanings,
             source=entry.source
         )
 
@@ -787,9 +805,7 @@ class SiglasMatcher:
             if omitted_reason:
                 self._add_omitted_match(
                     omitted_matches,
-                    matched,
-                    start_pos,
-                    end_pos,
+                    match,
                     omitted_reason
                 )
                 continue
@@ -802,9 +818,7 @@ class SiglasMatcher:
             if omitted_reason:
                 self._add_omitted_match(
                     omitted_matches,
-                    matched,
-                    start_pos,
-                    end_pos,
+                    match,
                     omitted_reason
                 )
                 continue
@@ -814,9 +828,7 @@ class SiglasMatcher:
             if not entry:
                 self._add_omitted_match(
                     omitted_matches,
-                    matched,
-                    start_pos,
-                    end_pos,
+                    match,
                     'not-found'
                 )
                 continue
@@ -824,29 +836,21 @@ class SiglasMatcher:
             total_acronyms_found += 1
 
             # MANEJO DE DUPLICADOS
-            expansion, has_multiple, all_meanings, ambiguity_details = (
-                self._resolve_match_expansion(entry, normalized_matched, options)
-            )
-            if ambiguity_details is not None:
+            resolved = self._resolve_match_expansion(entry, normalized_matched, options)
+            if resolved.ambiguity_details is not None:
                 ambiguous_not_expanded += 1
                 self._add_omitted_match(
                     omitted_matches,
-                    matched,
-                    start_pos,
-                    end_pos,
+                    match,
                     'ambiguous-unresolved',
-                    ambiguity_details
+                    resolved.ambiguity_details
                 )
                 continue
 
             matches.append(self._build_match_info(
-                matched,
+                match,
                 entry,
-                expansion,
-                start_pos,
-                end_pos,
-                has_multiple,
-                all_meanings,
+                resolved,
                 options
             ))
 
