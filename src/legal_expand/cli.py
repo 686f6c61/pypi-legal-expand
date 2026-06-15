@@ -11,7 +11,14 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Optional
 
-from .boe import boe_report_to_markdown, enriquecer_boe
+from .boe import (
+    boe_overrides_template,
+    boe_report_by_paragraph_markdown,
+    boe_report_to_html,
+    boe_report_to_markdown,
+    enriquecer_boe,
+    revisar_boe,
+)
 from .core.engine import (
     auditar_texto,
     benchmark_texto,
@@ -161,7 +168,16 @@ def build_parser() -> argparse.ArgumentParser:
     boe = subparsers.add_parser('boe', help='Detecta y enlaza referencias BOE')
     boe.add_argument('input', nargs='?', help=STDIN_INPUT_HELP)
     boe.add_argument('-o', '--output')
-    boe.add_argument('--report-format', choices=['json', 'markdown'], default='markdown')
+    boe.add_argument(
+        '--report-format',
+        choices=['json', 'markdown', 'html', 'paragraphs', 'review-json'],
+        default='markdown',
+    )
+    boe.add_argument(
+        '--overrides-template',
+        action='store_true',
+        help='Genera un JSON editable con referencias pendientes de revisión',
+    )
     boe.add_argument('--mode', choices=['offline', 'cache-first', 'online'], default='offline')
     boe.add_argument('--timeout', type=float, default=4.0)
     boe.add_argument('--max-results', type=int, default=5)
@@ -278,11 +294,18 @@ def run_boe(args: argparse.Namespace) -> int:
         overrides_path=args.overrides,
     )
     result = enriquecer_boe(text, options)
-    output = (
-        result.to_json(indent=2)
-        if args.report_format == 'json'
-        else boe_report_to_markdown(result)
-    )
+    if args.overrides_template:
+        output = json.dumps(boe_overrides_template(result), ensure_ascii=False, indent=2)
+    elif args.report_format == 'json':
+        output = result.to_json(indent=2)
+    elif args.report_format == 'review-json':
+        output = revisar_boe(result).to_json(indent=2)
+    elif args.report_format == 'html':
+        output = boe_report_to_html(result)
+    elif args.report_format == 'paragraphs':
+        output = boe_report_by_paragraph_markdown(result)
+    else:
+        output = boe_report_to_markdown(result)
     _write_output(output, args.output, args.encoding)
     return 0
 

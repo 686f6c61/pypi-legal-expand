@@ -5,6 +5,29 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.5.0] - 2026-06-15
+
+### Añadido
+
+- Revisión BOE explicada con `revisar_boe()`, agrupando referencias en `resolved`, `manual`, `review-required` y `unsupported`.
+- Explicaciones deterministas por referencia con `explicar_referencia_boe()` y acciones sugeridas para revisión humana.
+- Nuevas salidas del CLI `legal-expand boe`: `review-json`, `html` y `paragraphs`.
+- Generación de plantilla editable con `legal-expand boe --overrides-template` y `boe_overrides_template()` para completar referencias pendientes sin perder trazabilidad.
+- Informe HTML semántico con `boe_report_to_html()` e informe por párrafos con `boe_report_by_paragraph_markdown()`.
+- Tipos públicos `BOEReviewSection`, `BOEReviewItem`, `BOEReviewSummary` y `BOEReviewOutput`.
+
+### Cambiado
+
+- El informe Markdown BOE incluye explicación y acción sugerida en referencias resueltas, pendientes y no soportadas.
+- README, demo de Colab y `DEMO.txt` actualizados para explicar límites, casos de uso, revisión manual y salidas nuevas del asistente BOE.
+- Versiones de paquete, workflows de CI/publicación y configuración Sonar actualizadas a `1.5.0`.
+
+### Verificado
+
+- Matriz BOE extendida con pruebas de revisión explicada, plantilla de overrides, HTML, informe por párrafos y CLI.
+- SonarQube local en Docker (`http://localhost:9000`) con Quality Gate `OK`, `0` issues abiertos, cobertura nueva `81.4%`, duplicación nueva `0.0%` y violaciones nuevas `0`.
+- Batería local de calidad ampliada a 115 tests.
+
 ## [1.4.1] - 2026-06-15
 
 ### Cambiado

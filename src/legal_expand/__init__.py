@@ -48,7 +48,7 @@ Example:
 
 from __future__ import annotations
 
-__version__ = "1.4.1"
+__version__ = "1.5.0"
 __author__ = "686f6c61"
 
 # ============================================================================
@@ -75,9 +75,14 @@ from .documents import (
 )
 from .boe import (
     BOEClient,
+    boe_overrides_template,
+    boe_report_by_paragraph_markdown,
+    boe_report_to_html,
     boe_report_to_markdown,
     detectar_referencias_boe,
     enriquecer_boe,
+    explicar_referencia_boe,
+    revisar_boe,
 )
 
 # ============================================================================
@@ -113,6 +118,10 @@ from .types import (
     BOEReference,
     BOEReferenceKind,
     BOEReferenceStatus,
+    BOEReviewItem,
+    BOEReviewOutput,
+    BOEReviewSection,
+    BOEReviewSummary,
     BOEUnitBlock,
     DictionaryInfo,
     DictionaryStats,
@@ -156,6 +165,11 @@ __all__ = [
     "detectar_referencias_boe",
     "enriquecer_boe",
     "boe_report_to_markdown",
+    "boe_report_to_html",
+    "boe_report_by_paragraph_markdown",
+    "boe_overrides_template",
+    "explicar_referencia_boe",
+    "revisar_boe",
     "BOEClient",
     # Configuración global
     "configurar_globalmente",
@@ -184,6 +198,10 @@ __all__ = [
     "BOEReferenceStatus",
     "BOEEnrichmentStats",
     "BOEEnrichmentOutput",
+    "BOEReviewItem",
+    "BOEReviewOutput",
+    "BOEReviewSection",
+    "BOEReviewSummary",
     "DictionaryInfo",
     "OmittedAcronym",
     "OmittedAcronymReason",

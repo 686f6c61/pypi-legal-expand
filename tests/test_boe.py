@@ -10,12 +10,17 @@ from legal_expand import (
     BOENorm,
     BOEOptions,
     BOEUnitBlock,
+    boe_overrides_template,
+    boe_report_by_paragraph_markdown,
+    boe_report_to_html,
     boe_report_to_markdown,
     detectar_referencias_boe,
     enriquecer_boe,
+    explicar_referencia_boe,
+    revisar_boe,
 )
 from legal_expand.cli import main as cli_main
-from legal_expand.boe import BOEClient, _parse_norms
+from legal_expand.boe import BOEClient, _parse_norms, _unit_targets
 
 
 class FakeBOEClient:
@@ -305,6 +310,31 @@ def test_boe_overrides_permiten_referencia_manual_no_detectada():
     assert resultado.references[0].status == 'manual'
     assert resultado.references[0].unit_text == 'artículo 42'
     assert resultado.references[0].norm.boe_id == 'BOE-A-2023-4513'
+    assert 'Referencias manuales' in boe_report_to_html(resultado)
+
+
+def test_boe_overrides_pueden_confirmar_referencia_detectada():
+    overrides = {
+        'references': [
+            {
+                'text': 'artículo 42 de la Ley 2/2023',
+                'boe_id': 'BOE-A-2023-4513',
+                'title': 'Ley 2/2023, de 20 de febrero',
+                'unit': 'artículo 42',
+            }
+        ]
+    }
+
+    resultado = detectar_referencias_boe(
+        'Véase el artículo 42 de la Ley 2/2023.',
+        overrides=overrides,
+    )
+
+    referencia = resultado.references[0]
+    assert referencia.status == 'manual'
+    assert referencia.reason == 'manual-reference-override'
+    assert referencia.kind == 'unit'
+    assert referencia.norm.boe_id == 'BOE-A-2023-4513'
 
 
 def test_boe_online_con_cliente_fixture_resuelve_bloque_de_articulo():
@@ -319,6 +349,22 @@ def test_boe_online_con_cliente_fixture_resuelve_bloque_de_articulo():
     assert referencia.unit_blocks[0].block_id == 'a14'
     assert 'Derecho y obligación' in referencia.unit_blocks[0].title
     assert 'Artículo 14' in referencia.unit_blocks[0].text
+    markdown = boe_report_to_markdown(resultado)
+    assert '### Artículo 14. Derecho y obligación de relacionarse electrónicamente' in markdown
+    assert '#a14' in boe_report_by_paragraph_markdown(resultado)
+
+
+def test_boe_online_marca_unidad_no_encontrada():
+    resultado = enriquecer_boe(
+        'La notificación cita el art. 999 de la Ley 39/2015.',
+        BOEOptions(mode='online'),
+        client=FakeBOEClient(),
+    )
+
+    referencia = resultado.references[0]
+    assert referencia.status == 'not-found'
+    assert referencia.reason == 'boe-unit-block-not-found'
+    assert 'no se encontró esa unidad' in explicar_referencia_boe(referencia).lower()
 
 
 def test_boe_online_con_cliente_fixture_no_elije_candidatos_ambiguos():
@@ -331,6 +377,26 @@ def test_boe_online_con_cliente_fixture_no_elije_candidatos_ambiguos():
     referencia = resultado.references[0]
     assert referencia.status == 'ambiguous'
     assert len(referencia.candidates) == 2
+    template = boe_overrides_template(resultado)
+    assert template['references'][0]['candidates'][0]['boe_id'] == 'BOE-A-2021-111'
+    assert 'varios candidatos' in revisar_boe(resultado).items[0].explanation
+
+
+def test_boe_online_ignora_referencias_no_soportadas_sin_consultar_boe():
+    resultado = enriquecer_boe(
+        'La base jurídica es el art. 6 RGPD.',
+        BOEOptions(mode='online'),
+        client=FakeBOEClient(),
+    )
+
+    assert resultado.references[0].status == 'unsupported'
+
+
+def test_boe_unit_targets_rangos_sufijos_y_disposiciones():
+    assert _unit_targets('arts. 13 a 15') == ['artículo 13', 'artículo 14', 'artículo 15']
+    assert _unit_targets('artículo 14 bis') == ['artículo 14 bis']
+    assert _unit_targets('disp. final septima') == ['disposición final séptima']
+    assert _unit_targets('arts. 1 a 80') == ['artículo 1', 'artículo 80']
 
 
 def test_boe_markdown_y_cli_json(capsys, tmp_path):
@@ -349,6 +415,82 @@ def test_boe_markdown_y_cli_json(capsys, tmp_path):
     data = json.loads(capsys.readouterr().out)
     assert data['stats']['total_detected'] == 1
     assert data['references'][0]['norm']['boe_id'] == 'BOE-A-2015-10565'
+
+
+def test_boe_review_explica_y_agrupa_referencias():
+    resultado = detectar_referencias_boe(
+        'El art. 24 de la Constitución Española se cita junto al art. 6 RGPD. '
+        'Véase también el artículo 42 de la Ley 2/2023.'
+    )
+
+    review = revisar_boe(resultado)
+    sections = [item.section for item in review.items]
+
+    assert review.summary.total_references == 3
+    assert review.summary.resolved == 1
+    assert review.summary.review_required == 1
+    assert review.summary.unsupported == 1
+    assert sections == ['resolved', 'unsupported', 'review-required']
+    assert 'norma se identificó' in review.items[0].explanation.lower()
+    assert 'fuera del alcance BOE'.lower() in review.items[1].explanation.lower()
+    assert 'número y año' in review.items[2].explanation.lower()
+    assert explicar_referencia_boe(resultado.references[2]) == review.items[2].explanation
+    markdown = boe_report_to_markdown(resultado)
+    assert '## Requieren revisión' in markdown
+    assert '## No soportadas' in markdown
+
+
+def test_boe_overrides_template_solo_incluye_pendientes():
+    resultado = detectar_referencias_boe(
+        'El art. 24 de la Constitución Española se cita junto al artículo 42 de la Ley 2/2023.'
+    )
+
+    template = boe_overrides_template(resultado)
+
+    assert template['aliases'] == {}
+    assert len(template['references']) == 1
+    assert template['references'][0]['text'] == 'artículo 42 de la Ley 2/2023'
+    assert template['references'][0]['unit'] == 'artículo 42'
+    assert template['references'][0]['boe_id'] == ''
+    assert 'review_note' in template['references'][0]
+
+
+def test_boe_html_y_paragraph_report():
+    texto = (
+        'Primero, el art. 24 de la Constitución Española.\n\n'
+        'Después, el artículo 42 de la Ley 2/2023.'
+    )
+    resultado = detectar_referencias_boe(texto)
+
+    html = boe_report_to_html(resultado)
+    paragraphs = boe_report_by_paragraph_markdown(resultado)
+
+    assert '<section class="legal-expand-boe">' in html
+    assert 'https://www.boe.es/buscar/act.php?id=BOE-A-1978-31229' in html
+    assert 'Requieren revisión' in html
+    assert '> Referencias BOE sugeridas:' in paragraphs
+    assert 'art. 24' in paragraphs
+    assert 'artículo 42' in paragraphs
+
+
+def test_boe_cli_review_html_paragraphs_y_overrides_template(capsys, tmp_path):
+    texto = 'Véase el art. 24 de la Constitución Española y el artículo 42 de la Ley 2/2023.'
+    input_file = tmp_path / 'doc.txt'
+    input_file.write_text(texto, encoding='utf-8')
+
+    assert cli_main(['boe', str(input_file), '--report-format', 'review-json']) == 0
+    review = json.loads(capsys.readouterr().out)
+    assert review['summary']['review_required'] == 1
+
+    assert cli_main(['boe', str(input_file), '--report-format', 'html']) == 0
+    assert '<section class="legal-expand-boe">' in capsys.readouterr().out
+
+    assert cli_main(['boe', str(input_file), '--report-format', 'paragraphs']) == 0
+    assert '> Referencias BOE sugeridas:' in capsys.readouterr().out
+
+    assert cli_main(['boe', str(input_file), '--overrides-template']) == 0
+    template = json.loads(capsys.readouterr().out)
+    assert template['references'][0]['text'] == 'artículo 42 de la Ley 2/2023'
 
 
 def test_boe_client_solo_permite_base_url_oficial():

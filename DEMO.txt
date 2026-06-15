@@ -1,5 +1,5 @@
 ================================================================================
-                    DEMO Y GUIA RAPIDA - legal-expand 1.4.1
+                    DEMO Y GUIA RAPIDA - legal-expand 1.5.0
           646 siglas legales espanolas + asistente BOE determinista
 ================================================================================
 
@@ -18,11 +18,12 @@ Abre la demo interactiva:
 
 La primera celda instala la version exacta:
 
-  !pip install -U legal-expand==1.4.1 -q
+  !pip install -U legal-expand==1.5.0 -q
 
 El notebook cubre expansion de siglas, diagnostico, auditoria, glosarios,
 procesamiento batch, diccionarios personalizados, CLI y una matriz BOE de 25
-casos con referencias resueltas, ambiguas, no soportadas y manuales.
+casos con referencias resueltas, ambiguas, no soportadas, manuales, revision
+explicada, HTML, informe por parrafos y plantilla de overrides.
 
 
 OPCION 2: TERMINAL LOCAL
@@ -30,7 +31,7 @@ OPCION 2: TERMINAL LOCAL
 
 Instalar:
 
-  python -m pip install -U legal-expand==1.4.1
+  python -m pip install -U legal-expand==1.5.0
 
 Expandir texto desde stdin:
 
@@ -100,17 +101,44 @@ Salida JSON:
 
   legal-expand boe sentencia.txt --report-format json --output referencias-boe.json
 
+Revision humana explicada:
+
+  legal-expand boe sentencia.txt --report-format review-json --output revision-boe.json
+
+Informe HTML:
+
+  legal-expand boe sentencia.txt --report-format html --output referencias-boe.html
+
+Informe por parrafos:
+
+  legal-expand boe sentencia.txt --report-format paragraphs --output sentencia-boe.md
+
+Plantilla de overrides para completar pendientes:
+
+  legal-expand boe sentencia.txt --overrides-template --output boe-overrides.template.json
+
 Modo con cache y consulta opcional a BOE:
 
   legal-expand boe sentencia.txt --mode cache-first --timeout 4 --output referencias-boe.md
 
 Python:
 
-  from legal_expand import detectar_referencias_boe, boe_report_to_markdown
+  from legal_expand import (
+      boe_overrides_template,
+      boe_report_by_paragraph_markdown,
+      boe_report_to_html,
+      boe_report_to_markdown,
+      detectar_referencias_boe,
+      revisar_boe,
+  )
 
   texto = "El art. 24 de la Constitucion Espanola reconoce la tutela judicial."
   informe = detectar_referencias_boe(texto)
   print(boe_report_to_markdown(informe))
+  print(revisar_boe(informe).to_json(indent=2))
+  print(boe_report_to_html(informe))
+  print(boe_report_by_paragraph_markdown(informe))
+  print(boe_overrides_template(informe))
 
 
 OVERRIDES MANUALES BOE
@@ -137,28 +165,36 @@ Uso:
 Las referencias manuales aparecen con estado `manual` para distinguirlas de lo
 detectado automaticamente.
 
+Si no sabes aun que poner en el override, genera primero una plantilla:
+
+  legal-expand boe informe.md --overrides-template --output boe-overrides.template.json
+
+La plantilla incluye solo referencias pendientes de revision, su texto original,
+la unidad detectada si existe, candidatos cuando los haya y una nota explicativa.
+
 
 CALIDAD Y VERIFICACION
 --------------------------------------------------------------------------------
 
-La release 1.4.1 es una release de mantenimiento tras revisar code smells:
+La release 1.5.0 refuerza BOE como flujo de revision explicada. Antes de
+publicarla hay que validar:
 
   - Ruff general: OK
   - Ruff estricto sobre src/legal_expand: OK
   - mypy: OK
   - Bandit: sin issues identificados
-  - pytest con cobertura: 107 tests
+  - pytest con cobertura: OK
   - build wheel/sdist: OK
   - smoke install desde wheel: OK
-  - GitHub CI Python 3.9 a 3.14: OK
+  - SonarScanner contra SonarQube Docker local: Quality Gate OK
 
-SonarScanner esta configurado para SonarQube Cloud con:
+SonarScanner esta configurado para SonarQube local en Docker con:
 
-  sonar.organization=686f6c61
   sonar.projectKey=legal-expand
+  sonar.host.url=http://localhost:9000
 
-Para ejecutar el analisis remoto hace falta que el proyecto exista en SonarCloud
-o que el entorno tenga `SONAR_TOKEN` con permisos sobre ese proyecto.
+Para ejecutar el analisis hace falta que el contenedor SonarQube este levantado
+en `localhost:9000` y que el scanner tenga un token valido de ese servidor.
 
 
 RECURSOS

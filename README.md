@@ -24,7 +24,7 @@ Salida:  "La AEAT (Agencia Estatal de Administración Tributaria) notifica el IV
 - **Detección inteligente** de variantes (AEAT, A.E.A.T., A.E.A.T)
 - **Múltiples formatos**: texto plano, HTML semántico, JSON estructurado
 - **Diagnóstico de omisiones**: razones estables para siglas omitidas por filtros o contexto
-- **Enriquecimiento BOE opt-in**: detecta citas legales, enlaza normas y marca dudas sin inventar referencias
+- **Enriquecimiento BOE opt-in**: detecta citas legales, enlaza normas, explica dudas y genera revisión editable sin inventar referencias
 - **CLI oficial**: expansión, auditoría, glosario, batch, metadata, benchmark y BOE desde terminal
 - **Glosarios y auditoría**: exportación Markdown, CSV y JSON
 - **Procesamiento de documentos**: `.txt`, `.md`, `.html` y carpetas completas
@@ -41,18 +41,18 @@ Prueba el paquete sin instalar nada:
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/686f6c61/pypi-legal-expand/blob/main/legal_expand_demo.ipynb)
 
-El notebook incluye ejemplos de todos los casos de uso: expansión básica, formatos de salida, configuración global, documentos reales, herramientas interactivas y una sección BOE con matriz de 25 casos, referencias ambiguas, normativa UE no soportada y overrides manuales.
+El notebook incluye ejemplos de todos los casos de uso: expansión básica, formatos de salida, configuración global, documentos reales, herramientas interactivas y una sección BOE con matriz de 25 casos, revisión explicada, salidas Markdown/HTML/por párrafos, referencias ambiguas, normativa UE no soportada y overrides manuales.
 
-## Estado de la versión 1.4.1
+## Estado de la versión 1.5.0
 
-`1.4.1` es una release de mantenimiento sobre `1.4.0`. No cambia la API pública ni el comportamiento esperado del detector BOE; pule el código después de la revisión de calidad, reduce complejidad interna en BOE/CLI/matcher, actualiza la configuración de Sonar, limpia el notebook de Colab y rehace `DEMO.txt` como guía de uso actual.
+`1.5.0` refuerza el asistente BOE como flujo de revisión: añade explicaciones por referencia, salida agrupada para revisión humana, informe HTML, informe por párrafos y generación de plantilla JSON para overrides. La detección sigue siendo conservadora y determinista: si una referencia no es inequívoca, se marca para revisión en lugar de inventar un enlace.
 
-La verificación local incluye Ruff, perfil estricto de smells sobre `src/legal_expand`, mypy, Bandit, 107 tests con cobertura, build wheel/sdist y smoke install desde wheel. SonarScanner queda configurado con `sonar.organization=686f6c61`, pero el análisis remoto de SonarQube Cloud requiere que exista el proyecto con esa clave o que se configure `SONAR_TOKEN`.
+La verificación local de la release incluye Ruff, perfil estricto de smells sobre `src/legal_expand`, mypy, Bandit, tests con cobertura, build wheel/sdist, smoke install desde wheel y SonarScanner contra SonarQube en Docker (`http://localhost:9000`) antes de publicar. La última revisión local dejó Quality Gate `OK`, `0` issues abiertos, cobertura nueva `81.4%`, duplicación nueva `0.0%` y violaciones nuevas `0`.
 
 ## Índice
 
 - [Demo interactiva](#demo-interactiva)
-- [Estado de la versión 1.4.1](#estado-de-la-versión-141)
+- [Estado de la versión 1.5.0](#estado-de-la-versión-150)
 - [Instalación](#instalación)
 - [CLI](#cli)
 - [Uso básico](#uso-básico)
@@ -111,6 +111,12 @@ legal-expand benchmark sentencia.txt --iterations 500
 
 # Informe de referencias BOE, sin consultar red por defecto
 legal-expand boe sentencia.txt --output referencias-boe.md
+
+# Revisión explicada, HTML, informe por párrafos y plantilla de overrides
+legal-expand boe sentencia.txt --report-format review-json
+legal-expand boe sentencia.txt --report-format html --output referencias-boe.html
+legal-expand boe sentencia.txt --report-format paragraphs --output sentencia-boe.md
+legal-expand boe sentencia.txt --overrides-template --output boe-overrides.template.json
 
 # Enriquecimiento con API BOE y caché
 legal-expand boe sentencia.txt --mode cache-first --output referencias-boe.md
@@ -294,6 +300,10 @@ Por defecto el comando BOE funciona en modo `offline`: detecta referencias, usa 
 ```bash
 legal-expand boe sentencia.txt --output referencias-boe.md
 legal-expand boe sentencia.txt --report-format json --output referencias-boe.json
+legal-expand boe sentencia.txt --report-format review-json --output revision-boe.json
+legal-expand boe sentencia.txt --report-format html --output referencias-boe.html
+legal-expand boe sentencia.txt --report-format paragraphs --output sentencia-con-boe.md
+legal-expand boe sentencia.txt --overrides-template --output boe-overrides.template.json
 ```
 
 Si quieres que intente completar artículos, disposiciones o anexos consultando la API de legislación consolidada del BOE, activa `cache-first` u `online`.
@@ -304,19 +314,47 @@ legal-expand boe sentencia.txt --mode cache-first --timeout 4 --output referenci
 
 El modo `cache-first` reutiliza respuestas guardadas y solo consulta BOE cuando no hay caché válida. El modo `online` fuerza la consulta. En ambos casos se aplican timeouts para que una caída o lentitud de BOE no bloquee indefinidamente el flujo.
 
+### Modos de salida
+
+El subcomando `boe` tiene varias salidas para usos distintos:
+
+- `markdown`: informe legible por defecto, con tablas de resueltas, pendientes y no soportadas.
+- `json`: salida completa y estable para integraciones.
+- `review-json`: salida orientada a revisión humana, con cada referencia agrupada en `resolved`, `manual`, `review-required` o `unsupported`, explicación y acción sugerida.
+- `html`: informe semántico con enlaces seguros para incrustar en herramientas internas o revisarlo en navegador.
+- `paragraphs`: reproduce el texto original y añade, después de cada párrafo afectado, un bloque de referencias BOE sugeridas.
+- `--overrides-template`: genera un JSON editable solo con referencias que requieren revisión.
+
 ### API Python
 
 ```python
-from legal_expand import BOEOptions, detectar_referencias_boe, enriquecer_boe
+from legal_expand import (
+    BOEOptions,
+    boe_overrides_template,
+    boe_report_by_paragraph_markdown,
+    boe_report_to_html,
+    boe_report_to_markdown,
+    detectar_referencias_boe,
+    enriquecer_boe,
+    revisar_boe,
+)
 
 texto = 'La notificación electrónica se rige por el art. 14.2 de la Ley 39/2015.'
 
 # Detección offline y determinista
 informe = detectar_referencias_boe(texto)
 print(informe.to_json(indent=2))
+print(boe_report_to_markdown(informe))
 
 # Enriquecimiento opcional con API BOE
 informe_boe = enriquecer_boe(texto, BOEOptions(mode='cache-first'))
+revision = revisar_boe(informe_boe)
+print(revision.to_json(indent=2))
+
+# Salidas para revisión o integración
+html = boe_report_to_html(informe_boe)
+por_parrafos = boe_report_by_paragraph_markdown(informe_boe)
+template = boe_overrides_template(informe_boe)
 ```
 
 ### Cuándo funciona bien
@@ -353,6 +391,14 @@ El informe usa estados estables para que puedas auditar el resultado:
 Cuando una referencia no se puede resolver con seguridad, puedes añadirla manualmente mediante un archivo JSON de overrides. Esto permite corregir ambigüedades sin debilitar el comportamiento determinista de la herramienta.
 
 Las referencias añadidas manualmente aparecen marcadas como `manual` en el informe. Así se distingue siempre entre lo detectado automáticamente por `legal-expand` y lo confirmado por una persona que conoce el documento.
+
+Para acelerar la edición, genera primero una plantilla:
+
+```bash
+legal-expand boe informe.md --overrides-template --output boe-overrides.template.json
+```
+
+La plantilla solo incluye referencias en `review-required`. Cada entrada conserva el texto detectado, la unidad citada si existe, posibles candidatos devueltos por BOE y una nota de revisión. La persona revisora completa `boe_id`, `title` y, si procede, `unit`; después se vuelve a ejecutar el informe con `--overrides`.
 
 ```json
 {
@@ -972,6 +1018,30 @@ Detecta referencias y, si `BOEOptions.mode` es `cache-first` u `online`, intenta
 ### boe_report_to_markdown(informe)
 
 Convierte un `BOEEnrichmentOutput` en un informe Markdown legible.
+
+### revisar_boe(informe)
+
+Agrupa un `BOEEnrichmentOutput` en secciones de revisión: `resolved`, `manual`, `review-required` y `unsupported`. Cada elemento incluye explicación y acción sugerida.
+
+**Retorna:** `BOEReviewOutput`
+
+### explicar_referencia_boe(referencia)
+
+Devuelve una explicación breve y determinista del estado de una referencia BOE.
+
+**Retorna:** `str`
+
+### boe_report_to_html(informe)
+
+Convierte un `BOEEnrichmentOutput` en HTML semántico con enlaces escapados.
+
+### boe_report_by_paragraph_markdown(informe)
+
+Devuelve el texto original y añade un bloque de referencias BOE sugeridas tras cada párrafo afectado.
+
+### boe_overrides_template(informe)
+
+Genera un diccionario JSON editable con las referencias que requieren revisión manual.
 
 ### BOEOptions
 

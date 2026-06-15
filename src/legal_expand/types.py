@@ -449,6 +449,53 @@ class BOEEnrichmentOutput(SerializableMixin):
     warnings: list[str] = field(default_factory=list)
 
 
+BOEReviewSection = Literal[
+    'resolved',
+    'manual',
+    'review-required',
+    'unsupported',
+]
+
+
+@dataclass
+class BOEReviewItem(SerializableMixin):
+    """
+    Elemento de revisión BOE con explicación y acción sugerida.
+
+    No sustituye a BOEReference: lo envuelve para que la salida histórica siga
+    siendo estable y las UIs puedan mostrar por qué una referencia quedó en una
+    sección concreta.
+    """
+    reference: BOEReference
+    section: BOEReviewSection
+    explanation: str
+    suggested_action: str
+
+
+@dataclass
+class BOEReviewSummary(SerializableMixin):
+    """
+    Resumen orientado a revisión humana.
+    """
+    total_references: int
+    resolved: int
+    manual: int
+    review_required: int
+    unsupported: int
+    ready_count: int
+
+
+@dataclass
+class BOEReviewOutput(SerializableMixin):
+    """
+    Salida BOE agrupada para revisión legal.
+    """
+    original_text: str
+    items: list[BOEReviewItem]
+    summary: BOEReviewSummary
+    warnings: list[str] = field(default_factory=list)
+
+
 @dataclass
 class BatchResult(SerializableMixin):
     """

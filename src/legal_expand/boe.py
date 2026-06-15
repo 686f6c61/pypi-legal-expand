@@ -8,6 +8,7 @@ explícitas o manualmente confirmadas, y evita resolver cuando hay ambigüedad.
 from __future__ import annotations
 
 import hashlib
+import html
 import json
 import re
 import time
@@ -25,6 +26,10 @@ from .types import (
     BOENorm,
     BOEOptions,
     BOEReference,
+    BOEReviewItem,
+    BOEReviewOutput,
+    BOEReviewSection,
+    BOEReviewSummary,
     BOEUnitBlock,
     Position,
 )
@@ -36,6 +41,39 @@ BOE_INFORMATION_WARNING = (
     'Los textos consolidados del BOE tienen carácter meramente informativo; '
     'verifica siempre la versión oficial antes de usar una referencia en un acto jurídico.'
 )
+_STATUS_EXPLANATIONS = {
+    'resolved': 'Norma y unidad concreta localizadas en el índice de legislación consolidada del BOE.',
+    'resolved-url-only': 'La norma completa se identificó con seguridad y se enlaza a su página consolidada.',
+    'manual': 'Referencia confirmada manualmente mediante overrides aportados por la persona revisora.',
+    'needs-boe-search': 'La referencia parece BOE, pero necesita consulta a la API para confirmar la norma.',
+    'ambiguous': 'Hay demasiada duda para elegir una norma BOE sin intervención humana.',
+    'not-found': 'No se encontró una norma o unidad suficientemente identificable.',
+    'unsupported': 'Referencia fuera del alcance BOE de esta función, por ejemplo normativa UE o RGPD.',
+    'network-error': 'La consulta al BOE falló o superó el timeout configurado.',
+}
+_REASON_EXPLANATIONS = {
+    ('ambiguous', 'bare-number-year-known-ambiguous'): (
+        'Número y año sin fecha o título suficiente; puede referirse a más de una norma.'
+    ),
+    ('ambiguous', 'multiple-norms-for-same-unit'): (
+        'Una misma unidad aparece asociada a varias leyes en la misma frase.'
+    ),
+    ('not-found', 'unit-without-norm'): (
+        'La unidad se cita sin una norma inequívoca en el mismo párrafo.'
+    ),
+    ('not-found', 'boe-unit-block-not-found'): (
+        'La norma se identificó, pero no se encontró esa unidad en el índice BOE consultado.'
+    ),
+}
+_STATUS_ACTIONS = {
+    'resolved': 'Verifica la URL oficial antes de usarla en un documento final.',
+    'manual': 'Mantén el override junto al expediente para trazabilidad.',
+    'needs-boe-search': 'Reejecuta con --mode cache-first u online, o confirma la norma con un override.',
+    'ambiguous': 'Completa fecha, título o BOE-A en un override manual.',
+    'not-found': 'Añade la norma citada o confirma manualmente si la referencia es correcta.',
+    'unsupported': 'Revísala con una fuente distinta de BOE; no se resolverá automáticamente aquí.',
+    'network-error': 'Reintenta con caché, más timeout o revisión manual.',
+}
 
 _MONTH = (
     r'(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|'
@@ -126,42 +164,53 @@ def _norm(boe_id: str, title: str, source: str = 'curated') -> BOENorm:
     )
 
 
+_TITLE_LAW_39 = 'Ley 39/2015, de 1 de octubre'
+_TITLE_LAW_40 = 'Ley 40/2015, de 1 de octubre'
+_TITLE_LOPDGDD = 'Ley Orgánica 3/2018, de 5 de diciembre'
+_TITLE_CONSTITUTION = 'Constitución Española'
+_TITLE_CIVIL_CODE = 'Código Civil'
+_TITLE_CRIMINAL_CODE = 'Código Penal'
+_TITLE_CIVIL_PROCEDURE = 'Ley 1/2000, de 7 de enero'
+_TITLE_CRIMINAL_PROCEDURE = 'Ley de Enjuiciamiento Criminal'
+_TITLE_PUBLIC_CONTRACTS = 'Ley 9/2017, de 8 de noviembre'
+_TITLE_PUBLIC_EMPLOYEES = 'Real Decreto Legislativo 5/2015, de 30 de octubre'
+_TITLE_NATIONAL_SECURITY = 'Real Decreto 311/2022, de 3 de mayo'
 _CURATED_ALIASES: dict[str, BOENorm] = {
-    _normalize_text('Ley 39/2015'): _norm('BOE-A-2015-10565', 'Ley 39/2015, de 1 de octubre'),
-    _normalize_text('Ley 39/2015, de 1 de octubre'): _norm('BOE-A-2015-10565', 'Ley 39/2015, de 1 de octubre'),
-    _normalize_text('LPACAP'): _norm('BOE-A-2015-10565', 'Ley 39/2015, de 1 de octubre'),
-    _normalize_text('Ley 40/2015'): _norm('BOE-A-2015-10566', 'Ley 40/2015, de 1 de octubre'),
-    _normalize_text('Ley 40/2015, de 1 de octubre'): _norm('BOE-A-2015-10566', 'Ley 40/2015, de 1 de octubre'),
-    _normalize_text('LRJSP'): _norm('BOE-A-2015-10566', 'Ley 40/2015, de 1 de octubre'),
-    _normalize_text('Ley Orgánica 3/2018'): _norm('BOE-A-2018-16673', 'Ley Orgánica 3/2018, de 5 de diciembre'),
-    _normalize_text('LO 3/2018'): _norm('BOE-A-2018-16673', 'Ley Orgánica 3/2018, de 5 de diciembre'),
-    _normalize_text('LOPDGDD'): _norm('BOE-A-2018-16673', 'Ley Orgánica 3/2018, de 5 de diciembre'),
+    _normalize_text('Ley 39/2015'): _norm('BOE-A-2015-10565', _TITLE_LAW_39),
+    _normalize_text(_TITLE_LAW_39): _norm('BOE-A-2015-10565', _TITLE_LAW_39),
+    _normalize_text('LPACAP'): _norm('BOE-A-2015-10565', _TITLE_LAW_39),
+    _normalize_text('Ley 40/2015'): _norm('BOE-A-2015-10566', _TITLE_LAW_40),
+    _normalize_text(_TITLE_LAW_40): _norm('BOE-A-2015-10566', _TITLE_LAW_40),
+    _normalize_text('LRJSP'): _norm('BOE-A-2015-10566', _TITLE_LAW_40),
+    _normalize_text('Ley Orgánica 3/2018'): _norm('BOE-A-2018-16673', _TITLE_LOPDGDD),
+    _normalize_text('LO 3/2018'): _norm('BOE-A-2018-16673', _TITLE_LOPDGDD),
+    _normalize_text('LOPDGDD'): _norm('BOE-A-2018-16673', _TITLE_LOPDGDD),
     _normalize_text('Ley 2/2023, de 20 de febrero'): _norm('BOE-A-2023-4513', 'Ley 2/2023, de 20 de febrero'),
     _normalize_text('Real Decreto 203/2021'): _norm('BOE-A-2021-5032', 'Real Decreto 203/2021, de 30 de marzo'),
     _normalize_text('RD 203/2021'): _norm('BOE-A-2021-5032', 'Real Decreto 203/2021, de 30 de marzo'),
     _normalize_text('Real Decreto 463/2020'): _norm('BOE-A-2020-3692', 'Real Decreto 463/2020, de 14 de marzo'),
     _normalize_text('RD 463/2020'): _norm('BOE-A-2020-3692', 'Real Decreto 463/2020, de 14 de marzo'),
-    _normalize_text('Constitución'): _norm('BOE-A-1978-31229', 'Constitución Española'),
-    _normalize_text('Constitución Española'): _norm('BOE-A-1978-31229', 'Constitución Española'),
-    _normalize_text('CE'): _norm('BOE-A-1978-31229', 'Constitución Española'),
-    _normalize_text('Código Civil'): _norm('BOE-A-1889-4763', 'Código Civil'),
-    _normalize_text('CC'): _norm('BOE-A-1889-4763', 'Código Civil'),
-    _normalize_text('Código Penal'): _norm('BOE-A-1995-25444', 'Código Penal'),
-    _normalize_text('CP'): _norm('BOE-A-1995-25444', 'Código Penal'),
-    _normalize_text('Ley 1/2000'): _norm('BOE-A-2000-323', 'Ley 1/2000, de 7 de enero'),
-    _normalize_text('Ley de Enjuiciamiento Civil'): _norm('BOE-A-2000-323', 'Ley 1/2000, de 7 de enero'),
-    _normalize_text('LEC'): _norm('BOE-A-2000-323', 'Ley 1/2000, de 7 de enero'),
-    _normalize_text('Ley de Enjuiciamiento Criminal'): _norm('BOE-A-1882-6036', 'Ley de Enjuiciamiento Criminal'),
-    _normalize_text('LECrim'): _norm('BOE-A-1882-6036', 'Ley de Enjuiciamiento Criminal'),
-    _normalize_text('Ley 9/2017'): _norm('BOE-A-2017-12902', 'Ley 9/2017, de 8 de noviembre'),
-    _normalize_text('Ley de Contratos del Sector Público'): _norm('BOE-A-2017-12902', 'Ley 9/2017, de 8 de noviembre'),
-    _normalize_text('LCSP'): _norm('BOE-A-2017-12902', 'Ley 9/2017, de 8 de noviembre'),
-    _normalize_text('Real Decreto Legislativo 5/2015'): _norm('BOE-A-2015-11719', 'Real Decreto Legislativo 5/2015, de 30 de octubre'),
-    _normalize_text('TREBEP'): _norm('BOE-A-2015-11719', 'Real Decreto Legislativo 5/2015, de 30 de octubre'),
-    _normalize_text('EBEP'): _norm('BOE-A-2015-11719', 'Real Decreto Legislativo 5/2015, de 30 de octubre'),
-    _normalize_text('Real Decreto 311/2022'): _norm('BOE-A-2022-7191', 'Real Decreto 311/2022, de 3 de mayo'),
-    _normalize_text('RD 311/2022'): _norm('BOE-A-2022-7191', 'Real Decreto 311/2022, de 3 de mayo'),
-    _normalize_text('ENS'): _norm('BOE-A-2022-7191', 'Real Decreto 311/2022, de 3 de mayo'),
+    _normalize_text('Constitución'): _norm('BOE-A-1978-31229', _TITLE_CONSTITUTION),
+    _normalize_text(_TITLE_CONSTITUTION): _norm('BOE-A-1978-31229', _TITLE_CONSTITUTION),
+    _normalize_text('CE'): _norm('BOE-A-1978-31229', _TITLE_CONSTITUTION),
+    _normalize_text(_TITLE_CIVIL_CODE): _norm('BOE-A-1889-4763', _TITLE_CIVIL_CODE),
+    _normalize_text('CC'): _norm('BOE-A-1889-4763', _TITLE_CIVIL_CODE),
+    _normalize_text(_TITLE_CRIMINAL_CODE): _norm('BOE-A-1995-25444', _TITLE_CRIMINAL_CODE),
+    _normalize_text('CP'): _norm('BOE-A-1995-25444', _TITLE_CRIMINAL_CODE),
+    _normalize_text('Ley 1/2000'): _norm('BOE-A-2000-323', _TITLE_CIVIL_PROCEDURE),
+    _normalize_text('Ley de Enjuiciamiento Civil'): _norm('BOE-A-2000-323', _TITLE_CIVIL_PROCEDURE),
+    _normalize_text('LEC'): _norm('BOE-A-2000-323', _TITLE_CIVIL_PROCEDURE),
+    _normalize_text(_TITLE_CRIMINAL_PROCEDURE): _norm('BOE-A-1882-6036', _TITLE_CRIMINAL_PROCEDURE),
+    _normalize_text('LECrim'): _norm('BOE-A-1882-6036', _TITLE_CRIMINAL_PROCEDURE),
+    _normalize_text('Ley 9/2017'): _norm('BOE-A-2017-12902', _TITLE_PUBLIC_CONTRACTS),
+    _normalize_text('Ley de Contratos del Sector Público'): _norm('BOE-A-2017-12902', _TITLE_PUBLIC_CONTRACTS),
+    _normalize_text('LCSP'): _norm('BOE-A-2017-12902', _TITLE_PUBLIC_CONTRACTS),
+    _normalize_text('Real Decreto Legislativo 5/2015'): _norm('BOE-A-2015-11719', _TITLE_PUBLIC_EMPLOYEES),
+    _normalize_text('TREBEP'): _norm('BOE-A-2015-11719', _TITLE_PUBLIC_EMPLOYEES),
+    _normalize_text('EBEP'): _norm('BOE-A-2015-11719', _TITLE_PUBLIC_EMPLOYEES),
+    _normalize_text('Real Decreto 311/2022'): _norm('BOE-A-2022-7191', _TITLE_NATIONAL_SECURITY),
+    _normalize_text('RD 311/2022'): _norm('BOE-A-2022-7191', _TITLE_NATIONAL_SECURITY),
+    _normalize_text('ENS'): _norm('BOE-A-2022-7191', _TITLE_NATIONAL_SECURITY),
     _normalize_text('Orden HFP/1030/2021'): _norm('BOE-A-2021-15860', 'Orden HFP/1030/2021, de 29 de septiembre'),
 }
 
@@ -232,7 +281,7 @@ class BOEClient:
             url,
             headers={
                 'Accept': 'application/json, application/xml;q=0.9, */*;q=0.1',
-                'User-Agent': 'legal-expand/1.4 (+https://github.com/686f6c61/pypi-legal-expand)',
+                'User-Agent': 'legal-expand/1.5 (+https://github.com/686f6c61/pypi-legal-expand)',
             },
         )
         try:
@@ -304,7 +353,7 @@ class BOEClient:
 
 def _parse_norms(body: str) -> list[BOENorm]:
     stripped = body.lstrip()
-    if stripped.startswith('{') or stripped.startswith('['):
+    if stripped.startswith(('{', '[')):
         return _parse_norms_json(json.loads(body))
     return _parse_norms_xml(body)
 
@@ -337,7 +386,7 @@ def _parse_norms_xml(body: str) -> list[BOENorm]:
     for element in root.iter():
         data = {
             _local_name(child.tag): (child.text or '').strip()
-            for child in list(element)
+            for child in element
             if (child.text or '').strip()
         }
         boe_id = data.get('identificador') or data.get('id')
@@ -356,7 +405,7 @@ def _parse_norms_xml(body: str) -> list[BOENorm]:
 
 def _parse_index(body: str) -> list[dict[str, str]]:
     stripped = body.lstrip()
-    if stripped.startswith('{') or stripped.startswith('['):
+    if stripped.startswith(('{', '[')):
         return _parse_index_json(json.loads(body))
     return _parse_index_xml(body)
 
@@ -376,23 +425,31 @@ def _parse_index_xml(body: str) -> list[dict[str, str]]:
         root = _xml_fromstring(body)
     except ET.ParseError:
         return []
-    blocks: list[dict[str, str]] = []
-    for element in root.iter():
-        block_id = element.attrib.get('id') or element.attrib.get('id_bloque')
-        title = element.attrib.get('titulo') or element.attrib.get('title')
-        if not title:
-            for child in list(element):
-                if _local_name(child.tag) in {'titulo', 'title'} and child.text:
-                    title = child.text.strip()
-                    break
-        if block_id and title:
-            blocks.append({'id': block_id, 'title': title})
-    return blocks
+    return [
+        block
+        for element in root.iter()
+        if (block := _index_block_from_element(element)) is not None
+    ]
+
+
+def _index_block_from_element(element: ET.Element) -> Optional[dict[str, str]]:
+    block_id = element.attrib.get('id') or element.attrib.get('id_bloque')
+    title = element.attrib.get('titulo') or element.attrib.get('title')
+    if not title:
+        title = _index_title_from_children(element)
+    return {'id': block_id, 'title': title} if block_id and title else None
+
+
+def _index_title_from_children(element: ET.Element) -> Optional[str]:
+    for child in element:
+        if _local_name(child.tag) in {'titulo', 'title'} and child.text:
+            return child.text.strip()
+    return None
 
 
 def _plain_text(body: str) -> str:
     stripped = body.lstrip()
-    if stripped.startswith('{') or stripped.startswith('['):
+    if stripped.startswith(('{', '[')):
         try:
             data = json.loads(body)
         except json.JSONDecodeError:
@@ -660,34 +717,71 @@ def _add_manual_references(
     overrides: dict[str, Any],
 ) -> None:
     for item in _manual_reference_items(overrides):
-        item_text = item.get('text')
-        if not isinstance(item_text, str) or not item_text:
+        manual = _manual_reference_data(item)
+        if manual is None:
             continue
-        norm = _norm_from_override(item, source='manual')
-        if norm is None:
-            continue
-        start = 0
-        while True:
-            index = text.find(item_text, start)
-            if index == -1:
-                break
-            end = index + len(item_text)
-            start = end
-            if _is_protected(text, index, end):
-                continue
-            if any(index < consumed_end and end > consumed_start for consumed_start, consumed_end in consumed):
-                continue
-            unit_text = item.get('unit') if isinstance(item.get('unit'), str) else None
-            references.append(_reference(
-                item_text, index, end, 'unit' if unit_text else 'norm', 'manual',
-                norm_text=item.get('norm') if isinstance(item.get('norm'), str) else None,
-                unit_text=unit_text,
-                norm=norm,
-                confidence=1.0,
-                source='manual',
-                reason='manual-reference-added',
-            ))
+        item_text = manual[0]
+        for index, end in _manual_reference_spans(text, item_text, consumed):
+            references.append(_manual_reference(manual, index, end))
             consumed.append((index, end))
+
+
+_ManualReferenceData = tuple[str, BOENorm, Optional[str], Optional[str]]
+
+
+def _manual_reference_data(
+    item: dict[str, Any],
+) -> Optional[_ManualReferenceData]:
+    item_text = item.get('text')
+    if not isinstance(item_text, str) or not item_text:
+        return None
+    norm = _norm_from_override(item, source='manual')
+    if norm is None:
+        return None
+    norm_text = item.get('norm') if isinstance(item.get('norm'), str) else None
+    unit_text = item.get('unit') if isinstance(item.get('unit'), str) else None
+    return item_text, norm, norm_text, unit_text
+
+
+def _manual_reference_spans(
+    text: str,
+    item_text: str,
+    consumed: list[tuple[int, int]],
+) -> list[tuple[int, int]]:
+    spans: list[tuple[int, int]] = []
+    start = 0
+    while True:
+        index = text.find(item_text, start)
+        if index == -1:
+            return spans
+        end = index + len(item_text)
+        start = end
+        if _span_is_available(text, index, end, consumed):
+            spans.append((index, end))
+
+
+def _span_is_available(
+    text: str,
+    start: int,
+    end: int,
+    consumed: list[tuple[int, int]],
+) -> bool:
+    if _is_protected(text, start, end):
+        return False
+    return not any(start < consumed_end and end > consumed_start for consumed_start, consumed_end in consumed)
+
+
+def _manual_reference(manual: _ManualReferenceData, start: int, end: int) -> BOEReference:
+    item_text, norm, norm_text, unit_text = manual
+    return _reference(
+        item_text, start, end, 'unit' if unit_text else 'norm', 'manual',
+        norm_text=norm_text,
+        unit_text=unit_text,
+        norm=norm,
+        confidence=1.0,
+        source='manual',
+        reason='manual-reference-added',
+    )
 
 
 ReferenceAdder = Callable[[BOEReference], None]
@@ -877,35 +971,58 @@ def enriquecer_boe(
     return _output(texto, enriched)
 
 
-def _enrich_reference(reference: BOEReference, options: BOEOptions, client: BOEClient) -> BOEReference:
-    if reference.status in {'unsupported', 'ambiguous', 'not-found'}:
-        return reference
-    if reference.norm is None and reference.norm_text and reference.status == 'needs-boe-search':
-        norm, candidates = client.resolve_norm(reference.norm_text)
-        reference.candidates = candidates
-        if norm is None:
-            reference.status = 'ambiguous' if candidates else 'not-found'
-            reference.reason = 'boe-search-ambiguous' if candidates else 'boe-search-not-found'
-            return reference
-        reference.norm = norm
-        reference.status = 'resolved-url-only'
-        reference.source = norm.source
-        reference.reason = 'boe-search-resolved-url-only'
+_ENRICH_SKIP_STATUSES = {'unsupported', 'ambiguous', 'not-found'}
 
-    if (
-        reference.norm is not None
-        and reference.unit_text
-        and options.include_unit_text
-    ):
-        blocks = client.find_unit_blocks(reference.norm.boe_id, reference.unit_text)
-        if blocks:
-            reference.unit_blocks = blocks
-            reference.status = 'resolved'
-            reference.reason = 'boe-unit-block-resolved'
-            return reference
-        if reference.status != 'manual':
-            reference.status = 'not-found'
-            reference.reason = 'boe-unit-block-not-found'
+
+def _enrich_reference(reference: BOEReference, options: BOEOptions, client: BOEClient) -> BOEReference:
+    if reference.status in _ENRICH_SKIP_STATUSES:
+        return reference
+    if _needs_norm_lookup(reference) and not _resolve_reference_norm(reference, client):
+        return reference
+
+    if _should_fetch_unit_blocks(reference, options):
+        return _enrich_unit_blocks(reference, client)
+    return reference
+
+
+def _needs_norm_lookup(reference: BOEReference) -> bool:
+    return (
+        reference.norm is None
+        and reference.norm_text is not None
+        and reference.status == 'needs-boe-search'
+    )
+
+
+def _resolve_reference_norm(reference: BOEReference, client: BOEClient) -> bool:
+    norm, candidates = client.resolve_norm(reference.norm_text or '')
+    reference.candidates = candidates
+    if norm is None:
+        reference.status = 'ambiguous' if candidates else 'not-found'
+        reference.reason = 'boe-search-ambiguous' if candidates else 'boe-search-not-found'
+        return False
+    reference.norm = norm
+    reference.status = 'resolved-url-only'
+    reference.source = norm.source
+    reference.reason = 'boe-search-resolved-url-only'
+    return True
+
+
+def _should_fetch_unit_blocks(reference: BOEReference, options: BOEOptions) -> bool:
+    return reference.norm is not None and reference.unit_text is not None and options.include_unit_text
+
+
+def _enrich_unit_blocks(reference: BOEReference, client: BOEClient) -> BOEReference:
+    if reference.norm is None or reference.unit_text is None:
+        return reference
+    blocks = client.find_unit_blocks(reference.norm.boe_id, reference.unit_text)
+    if blocks:
+        reference.unit_blocks = blocks
+        reference.status = 'resolved'
+        reference.reason = 'boe-unit-block-resolved'
+        return reference
+    if reference.status != 'manual':
+        reference.status = 'not-found'
+        reference.reason = 'boe-unit-block-not-found'
     return reference
 
 
@@ -926,33 +1043,145 @@ def _output(texto: str, references: list[BOEReference]) -> BOEEnrichmentOutput:
     )
 
 
+def explicar_referencia_boe(reference: BOEReference) -> str:
+    """
+    Explica por qué una referencia BOE quedó en su estado actual.
+    """
+    if reference.status == 'resolved-url-only' and reference.unit_text:
+        return (
+            'La norma se identificó con seguridad, pero no se insertó texto de la unidad. '
+            'Activa cache-first u online para intentar localizar artículos o anexos.'
+        )
+    if reference.status == 'ambiguous' and reference.candidates:
+        return 'La consulta devolvió varios candidatos y no se elige ninguno automáticamente.'
+    reason = _REASON_EXPLANATIONS.get((reference.status, reference.reason or ''))
+    return reason or _STATUS_EXPLANATIONS.get(reference.status, reference.reason or 'Sin explicación disponible.')
+
+
+def _review_section(reference: BOEReference) -> BOEReviewSection:
+    if reference.status == 'manual':
+        return 'manual'
+    if reference.status in {'resolved', 'resolved-url-only'}:
+        return 'resolved'
+    if reference.status == 'unsupported':
+        return 'unsupported'
+    return 'review-required'
+
+
+def _suggested_action(reference: BOEReference) -> str:
+    status = 'resolved' if reference.status == 'resolved-url-only' else reference.status
+    return _STATUS_ACTIONS.get(status, 'Revisa la referencia antes de usarla.')
+
+
+def revisar_boe(output: BOEEnrichmentOutput) -> BOEReviewOutput:
+    """
+    Agrupa un informe BOE en secciones útiles para revisión humana.
+    """
+    items = [
+        BOEReviewItem(
+            reference=reference,
+            section=_review_section(reference),
+            explanation=explicar_referencia_boe(reference),
+            suggested_action=_suggested_action(reference),
+        )
+        for reference in output.references
+    ]
+    summary = BOEReviewSummary(
+        total_references=len(items),
+        resolved=sum(1 for item in items if item.section == 'resolved'),
+        manual=sum(1 for item in items if item.section == 'manual'),
+        review_required=sum(1 for item in items if item.section == 'review-required'),
+        unsupported=sum(1 for item in items if item.section == 'unsupported'),
+        ready_count=sum(1 for item in items if item.section in {'resolved', 'manual'}),
+    )
+    return BOEReviewOutput(
+        original_text=output.original_text,
+        items=items,
+        summary=summary,
+        warnings=output.warnings,
+    )
+
+
+def boe_overrides_template(output: BOEEnrichmentOutput) -> dict[str, Any]:
+    """
+    Genera un template JSON editable para referencias BOE pendientes.
+    """
+    references: list[dict[str, Any]] = []
+    for item in revisar_boe(output).items:
+        reference = item.reference
+        if item.section != 'review-required':
+            continue
+        data: dict[str, Any] = {
+            'text': reference.original_text,
+            'boe_id': '',
+            'title': '',
+        }
+        if reference.norm_text:
+            data['norm'] = reference.norm_text
+        if reference.unit_text:
+            data['unit'] = reference.unit_text
+        if reference.candidates:
+            data['candidates'] = [
+                {
+                    'boe_id': candidate.boe_id,
+                    'title': candidate.title,
+                    'url': candidate.url,
+                }
+                for candidate in reference.candidates
+            ]
+        data['review_note'] = item.explanation
+        references.append(data)
+    return {
+        'aliases': {},
+        'references': references,
+    }
+
+
 def _unit_targets(unit_text: str) -> list[str]:
     normalized = _normalize_text(unit_text)
     if normalized.startswith('ART'):
-        article_refs = re.findall(
-            r'(\d+)(?:\s+(bis|ter|quater))?(?:\.\d+)*(?:\.[a-z])?\)?',
-            unit_text,
-            flags=re.IGNORECASE,
-        )
-        targets: list[str] = []
-        if len(article_refs) >= 2 and re.search(r'\b(?:a|-)\b', unit_text):
-            start, end = article_refs[0][0], article_refs[-1][0]
-            if start.isdigit() and end.isdigit():
-                start_i, end_i = int(start), int(end)
-                if 0 < end_i - start_i <= 50:
-                    return [f'artículo {number}' for number in range(start_i, end_i + 1)]
-        for number, suffix in article_refs:
-            target = f'artículo {number}'
-            if suffix:
-                target += f' {suffix.lower()}'
-            if target not in targets:
-                targets.append(target)
-        return targets
-    if normalized.startswith(('DISPOSICION', 'DISP', 'DA', 'DF', 'DT', 'DD')):
-        return [_normalize_for_title(unit_text)]
-    if normalized.startswith('ANEXO'):
-        return [_normalize_for_title(unit_text)]
+        return _article_unit_targets(unit_text)
     return [_normalize_for_title(unit_text)]
+
+
+def _article_unit_targets(unit_text: str) -> list[str]:
+    article_refs = re.findall(
+        r'(\d+)(?:\s+(bis|ter|quater))?(?:\.\d+)*(?:\.[a-z])?\)?',
+        unit_text,
+        flags=re.IGNORECASE,
+    )
+    range_targets = _article_range_targets(article_refs, unit_text)
+    if range_targets is not None:
+        return range_targets
+    return _dedupe_article_targets(article_refs)
+
+
+def _article_range_targets(
+    article_refs: list[tuple[str, str]],
+    unit_text: str,
+) -> Optional[list[str]]:
+    if len(article_refs) < 2 or not _has_article_range_connector(unit_text):
+        return None
+    start, end = article_refs[0][0], article_refs[-1][0]
+    start_i, end_i = int(start), int(end)
+    if 0 < end_i - start_i <= 50:
+        return [f'artículo {number}' for number in range(start_i, end_i + 1)]
+    return None
+
+
+def _has_article_range_connector(unit_text: str) -> bool:
+    return '-' in unit_text or re.search(r'\ba\b', unit_text, flags=re.IGNORECASE) is not None
+
+
+def _dedupe_article_targets(article_refs: list[tuple[str, str]]) -> list[str]:
+    targets: list[str] = []
+    for number, suffix in article_refs:
+        target = f'artículo {number}'
+        if suffix:
+            target += f' {suffix.lower()}'
+        if target not in targets:
+            targets.append(target)
+    return targets
 
 
 def _normalize_for_title(text: str) -> str:
@@ -979,11 +1208,29 @@ def _find_index_block(index: list[dict[str, str]], target: str) -> Optional[dict
     return None
 
 
+_RESOLVED_STATUSES = {'resolved', 'resolved-url-only', 'manual'}
+_PENDING_STATUSES = {'needs-boe-search', 'ambiguous', 'not-found', 'network-error'}
+
+
 def boe_report_to_markdown(output: BOEEnrichmentOutput) -> str:
     """
     Convierte un informe BOE a Markdown legible.
     """
-    lines = [
+    lines = _boe_markdown_summary(output)
+    resolved = [item for item in output.references if item.status in _RESOLVED_STATUSES]
+    pending = [item for item in output.references if item.status in _PENDING_STATUSES]
+    unsupported = [item for item in output.references if item.status == 'unsupported']
+
+    _append_resolved_markdown(lines, resolved)
+    _append_pending_markdown(lines, pending)
+    _append_unsupported_markdown(lines, unsupported)
+    _append_warning_markdown(lines, output.warnings)
+
+    return '\n'.join(lines).strip() + '\n'
+
+
+def _boe_markdown_summary(output: BOEEnrichmentOutput) -> list[str]:
+    return [
         '# legal-expand BOE',
         '',
         f"- Detectadas: {output.stats.total_detected}",
@@ -994,55 +1241,190 @@ def boe_report_to_markdown(output: BOEEnrichmentOutput) -> str:
         f"- No soportadas: {output.stats.total_unsupported}",
         '',
     ]
-    resolved = [item for item in output.references if item.status in {'resolved', 'resolved-url-only', 'manual'}]
-    pending = [item for item in output.references if item.status in {'needs-boe-search', 'ambiguous', 'not-found', 'network-error'}]
-    unsupported = [item for item in output.references if item.status == 'unsupported']
 
-    if resolved:
+
+def _append_resolved_markdown(lines: list[str], items: list[BOEReference]) -> None:
+    if not items:
+        return
+    lines.extend([
+        '## Referencias resueltas',
+        '',
+        '| Texto | Estado | Norma | Unidad | URL | Explicación |',
+        '| --- | --- | --- | --- | --- | --- |',
+    ])
+    for item in items:
+        lines.append(_resolved_markdown_row(item))
+        _append_unit_blocks_markdown(lines, item)
+
+
+def _resolved_markdown_row(item: BOEReference) -> str:
+    norm_title = item.norm.title if item.norm else ''
+    return (
+        f"| {_md(item.original_text)} | {item.status} | {_md(norm_title)} | "
+        f"{_md(item.unit_text or '')} | {_best_url(item)} | "
+        f"{_md(explicar_referencia_boe(item))} |"
+    )
+
+
+def _append_unit_blocks_markdown(lines: list[str], item: BOEReference) -> None:
+    for block in item.unit_blocks:
+        if block.text:
+            lines.extend(['', f"### {_md(block.title)}", '', block.text, ''])
+
+
+def _append_pending_markdown(lines: list[str], items: list[BOEReference]) -> None:
+    if not items:
+        return
+    lines.extend([
+        '',
+        '## Requieren revisión',
+        '',
+        '| Texto | Estado | Motivo | Explicación | Acción sugerida |',
+        '| --- | --- | --- | --- | --- |',
+    ])
+    lines.extend(_pending_markdown_row(item) for item in items)
+
+
+def _pending_markdown_row(item: BOEReference) -> str:
+    return (
+        f"| {_md(item.original_text)} | {item.status} | {_md(item.reason or '')} | "
+        f"{_md(explicar_referencia_boe(item))} | {_md(_suggested_action(item))} |"
+    )
+
+
+def _append_unsupported_markdown(lines: list[str], items: list[BOEReference]) -> None:
+    if not items:
+        return
+    lines.extend([
+        '',
+        '## No soportadas',
+        '',
+        '| Texto | Motivo | Explicación |',
+        '| --- | --- | --- |',
+    ])
+    lines.extend(_unsupported_markdown_row(item) for item in items)
+
+
+def _unsupported_markdown_row(item: BOEReference) -> str:
+    return (
+        f"| {_md(item.original_text)} | {_md(item.reason or '')} | "
+        f"{_md(explicar_referencia_boe(item))} |"
+    )
+
+
+def _append_warning_markdown(lines: list[str], warnings: list[str]) -> None:
+    if warnings:
+        lines.extend(['', '## Avisos', ''])
+        lines.extend(f"- {warning}" for warning in warnings)
+
+
+def boe_report_to_html(output: BOEEnrichmentOutput) -> str:
+    """
+    Convierte un informe BOE a HTML semántico con enlaces seguros.
+    """
+    review = revisar_boe(output)
+    lines = [
+        '<section class="legal-expand-boe">',
+        '<h1>legal-expand BOE</h1>',
+        '<dl>',
+        f'<dt>Detectadas</dt><dd>{review.summary.total_references}</dd>',
+        f'<dt>Listas</dt><dd>{review.summary.ready_count}</dd>',
+        f'<dt>Requieren revisión</dt><dd>{review.summary.review_required}</dd>',
+        f'<dt>No soportadas</dt><dd>{review.summary.unsupported}</dd>',
+        '</dl>',
+    ]
+    for section, title in (
+        ('resolved', 'Referencias resueltas'),
+        ('manual', 'Referencias manuales'),
+        ('review-required', 'Requieren revisión'),
+        ('unsupported', 'No soportadas'),
+    ):
+        items = [item for item in review.items if item.section == section]
+        if not items:
+            continue
         lines.extend([
-            '## Referencias resueltas',
-            '',
-            '| Texto | Estado | Norma | Unidad | URL |',
-            '| --- | --- | --- | --- | --- |',
+            f'<h2>{html.escape(title)}</h2>',
+            '<table>',
+            '<thead><tr><th>Texto</th><th>Estado</th><th>Norma</th>'
+            '<th>Unidad</th><th>URL</th><th>Explicación</th><th>Acción</th></tr></thead>',
+            '<tbody>',
         ])
-        for item in resolved:
-            norm_title = item.norm.title if item.norm else ''
-            url = _best_url(item)
-            lines.append(
-                f"| {_md(item.original_text)} | {item.status} | {_md(norm_title)} | "
-                f"{_md(item.unit_text or '')} | {url} |"
+        for item in items:
+            reference = item.reference
+            norm_title = reference.norm.title if reference.norm else ''
+            url = _best_url(reference)
+            url_html = (
+                f'<a href="{html.escape(url, quote=True)}">{html.escape(url)}</a>'
+                if url
+                else ''
             )
-            for block in item.unit_blocks:
-                if block.text:
-                    lines.extend(['', f"### {_md(block.title)}", '', block.text, ''])
-
-    if pending:
-        lines.extend([
-            '',
-            '## Requieren revisión',
-            '',
-            '| Texto | Estado | Motivo |',
-            '| --- | --- | --- |',
-        ])
-        for item in pending:
-            lines.append(f"| {_md(item.original_text)} | {item.status} | {_md(item.reason or '')} |")
-
-    if unsupported:
-        lines.extend([
-            '',
-            '## No soportadas',
-            '',
-            '| Texto | Motivo |',
-            '| --- | --- |',
-        ])
-        for item in unsupported:
-            lines.append(f"| {_md(item.original_text)} | {_md(item.reason or '')} |")
+            lines.append(
+                '<tr>'
+                f'<td>{html.escape(reference.original_text)}</td>'
+                f'<td>{html.escape(reference.status)}</td>'
+                f'<td>{html.escape(norm_title)}</td>'
+                f'<td>{html.escape(reference.unit_text or "")}</td>'
+                f'<td>{url_html}</td>'
+                f'<td>{html.escape(item.explanation)}</td>'
+                f'<td>{html.escape(item.suggested_action)}</td>'
+                '</tr>'
+            )
+        lines.extend(['</tbody>', '</table>'])
 
     if output.warnings:
-        lines.extend(['', '## Avisos', ''])
-        lines.extend(f"- {warning}" for warning in output.warnings)
+        lines.append('<h2>Avisos</h2>')
+        lines.append('<ul>')
+        lines.extend(f'<li>{html.escape(warning)}</li>' for warning in output.warnings)
+        lines.append('</ul>')
+    lines.append('</section>')
+    return '\n'.join(lines) + '\n'
 
-    return '\n'.join(lines).strip() + '\n'
+
+def boe_report_by_paragraph_markdown(output: BOEEnrichmentOutput) -> str:
+    """
+    Devuelve el texto original con un bloque de referencias BOE tras cada párrafo afectado.
+    """
+    parts: list[str] = []
+    for start, end, paragraph in _paragraph_spans(output.original_text):
+        refs = [
+            reference
+            for reference in output.references
+            if start <= reference.position.start < end
+        ]
+        parts.append(paragraph.rstrip())
+        if refs:
+            parts.extend(['', '> Referencias BOE sugeridas:'])
+            for reference in refs:
+                url = _best_url(reference)
+                explanation = explicar_referencia_boe(reference)
+                label = reference.unit_text or reference.norm_text or reference.original_text
+                if url:
+                    parts.append(
+                        f"> - {reference.status}: [{_md(label)}]({url}) - {_md(explanation)}"
+                    )
+                else:
+                    parts.append(
+                        f"> - {reference.status}: {_md(label)} - {_md(explanation)}"
+                    )
+        parts.append('')
+    if output.warnings:
+        parts.append('> Aviso BOE: ' + _md(output.warnings[0]))
+        parts.append('')
+    return '\n'.join(parts).strip() + '\n'
+
+
+def _paragraph_spans(text: str) -> list[tuple[int, int, str]]:
+    spans: list[tuple[int, int, str]] = []
+    start = 0
+    for match in re.finditer(r'\n\s*\n', text):
+        paragraph = text[start:match.start()]
+        if paragraph.strip():
+            spans.append((start, match.start(), paragraph))
+        start = match.end()
+    paragraph = text[start:]
+    if paragraph.strip():
+        spans.append((start, len(text), paragraph))
+    return spans
 
 
 def _best_url(reference: BOEReference) -> str:
