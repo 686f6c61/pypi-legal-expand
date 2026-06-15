@@ -1,4 +1,4 @@
-[![PyPI version](https://img.shields.io/pypi/v/legal-expand.svg?label=PyPI)](https://pypi.org/project/legal-expand/)
+[![PyPI version](https://img.shields.io/pypi/v/legal-expand.svg?label=PyPI&cacheSeconds=300)](https://pypi.org/project/legal-expand/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python versions](https://img.shields.io/pypi/pyversions/legal-expand.svg)](https://pypi.org/project/legal-expand/)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/686f6c61/pypi-legal-expand/blob/main/legal_expand_demo.ipynb)
