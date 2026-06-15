@@ -43,9 +43,16 @@ Prueba el paquete sin instalar nada:
 
 El notebook incluye ejemplos de todos los casos de uso: expansión básica, formatos de salida, configuración global, documentos reales, herramientas interactivas y una sección BOE con matriz de 25 casos, referencias ambiguas, normativa UE no soportada y overrides manuales.
 
+## Estado de la versión 1.4.1
+
+`1.4.1` es una release de mantenimiento sobre `1.4.0`. No cambia la API pública ni el comportamiento esperado del detector BOE; pule el código después de la revisión de calidad, reduce complejidad interna en BOE/CLI/matcher, actualiza la configuración de Sonar, limpia el notebook de Colab y rehace `DEMO.txt` como guía de uso actual.
+
+La verificación local incluye Ruff, perfil estricto de smells sobre `src/legal_expand`, mypy, Bandit, 107 tests con cobertura, build wheel/sdist y smoke install desde wheel. SonarScanner queda configurado con `sonar.organization=686f6c61`, pero el análisis remoto de SonarQube Cloud requiere que exista el proyecto con esa clave o que se configure `SONAR_TOKEN`.
+
 ## Índice
 
 - [Demo interactiva](#demo-interactiva)
+- [Estado de la versión 1.4.1](#estado-de-la-versión-141)
 - [Instalación](#instalación)
 - [CLI](#cli)
 - [Uso básico](#uso-básico)

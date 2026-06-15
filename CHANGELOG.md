@@ -5,6 +5,31 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.4.1] - 2026-06-15
+
+### Cambiado
+
+- Refactor interno del detector BOE para reducir complejidad ciclomática sin cambiar la API pública ni los estados del informe.
+- Dispatch del CLI simplificado mediante una tabla de comandos, manteniendo los mismos subcomandos y argumentos.
+- Matcher de siglas reorganizado con objetos internos para metadata del índice y resolución de matches, reduciendo code smells sin afectar al diccionario ni al resultado.
+- Demo de Google Colab actualizada a `legal-expand==1.4.1` y limpiada de imports no usados.
+- `DEMO.txt` rehecho como guía real de Colab, CLI, Python, BOE, overrides y validación de calidad.
+- Configuración Sonar actualizada a la versión `1.4.1` y organización `686f6c61`.
+
+### Corregido
+
+- Documentación de verificación de la release BOE alineada con la suite actual de 107 tests.
+
+### Verificado
+
+- `ruff check .` y perfil estricto de smells sobre `src/legal_expand`: sin issues.
+- `mypy src/legal_expand`: sin issues.
+- `bandit -r src/legal_expand -ll`: sin issues identificados.
+- `pytest --cov`: 107 tests pasados.
+- `compileall`, build wheel/sdist y smoke install desde wheel: OK.
+- CI de GitHub en Python 3.9, 3.10, 3.11, 3.12, 3.13 y 3.14: OK.
+- SonarScanner conecta con SonarQube Cloud, pero el análisis remoto requiere que exista el proyecto o que se configure `SONAR_TOKEN`; el servidor devuelve `Project not found` antes de ejecutar el análisis.
+
 ## [1.4.0] - 2026-06-15
 
 ### Añadido
@@ -32,7 +57,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 ### Verificado
 
 - Añadida una matriz de 25 casos de uso y edge cases para textos tipo sentencia, recurso administrativo, apuntes de oposición, normas completas, referencias ambiguas, abreviaturas procesales, contextos protegidos, overrides manuales y cliente BOE con fixtures.
-- Suite completa validada: 105 tests.
+- Suite completa validada: 107 tests.
 
 ## [1.3.1] - 2026-06-15
 

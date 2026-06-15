@@ -1,91 +1,164 @@
 ================================================================================
-                    DEMO INTERACTIVA - legal-expand
-          646 siglas legales españolas verificadas (RAE, BOE, DPEJ)
+                    DEMO Y GUIA RAPIDA - legal-expand 1.4.1
+          646 siglas legales espanolas + asistente BOE determinista
 ================================================================================
 
-OPCION 1: Google Colab (recomendado)
+Este archivo acompana al notebook `legal_expand_demo.ipynb`.
+
+No hay un `demo.py` separado en esta version: la demo mantenida es el notebook de
+Colab y los ejemplos CLI/Python de este documento.
+
+
+OPCION 1: GOOGLE COLAB
 --------------------------------------------------------------------------------
 
-1. Abre el notebook directamente en Colab:
-   https://colab.research.google.com/github/686f6c61/pypi-legal-expand/blob/main/legal_expand_demo.ipynb
+Abre la demo interactiva:
 
-2. Alternativa: sube el archivo manualmente
-   - Ve a https://colab.research.google.com
-   - Archivo > Subir notebook
-   - Selecciona el archivo: legal_expand_demo.ipynb
+  https://colab.research.google.com/github/686f6c61/pypi-legal-expand/blob/main/legal_expand_demo.ipynb
 
-3. Ejecuta las celdas en orden (Shift+Enter o boton Play)
+La primera celda instala la version exacta:
 
-4. La primera celda instalara el paquete automaticamente:
-   !pip install legal-expand
+  !pip install -U legal-expand==1.4.1 -q
+
+El notebook cubre expansion de siglas, diagnostico, auditoria, glosarios,
+procesamiento batch, diccionarios personalizados, CLI y una matriz BOE de 25
+casos con referencias resueltas, ambiguas, no soportadas y manuales.
 
 
-OPCION 2: Terminal local
+OPCION 2: TERMINAL LOCAL
 --------------------------------------------------------------------------------
 
-1. Instala el paquete:
-   pip install legal-expand
+Instalar:
 
-2. Ejecuta la demo interactiva:
-   python demo.py
+  python -m pip install -U legal-expand==1.4.1
 
-3. O prueba directamente en Python:
-   >>> from legal_expand import expandir_siglas
-   >>> expandir_siglas('La AEAT notifica el IVA')
+Expandir texto desde stdin:
+
+  printf "La AEAT gestiona el IVA segun el BOE.\n" | legal-expand
+
+Expandir un archivo:
+
+  legal-expand sentencia.txt --expand-only-first --output sentencia-expandida.txt
+
+Generar auditoria:
+
+  legal-expand audit sentencia.txt --report-format markdown --output audit.md
+
+Generar glosario:
+
+  legal-expand glossary sentencia.txt --glossary-format csv --output glosario.csv
+
+Procesar una carpeta:
+
+  legal-expand batch docs/ docs-expandidos/ --format html
 
 
-OPCION 3: Jupyter Notebook local
+OPCION 3: PYTHON
 --------------------------------------------------------------------------------
 
-1. Instala Jupyter si no lo tienes:
-   pip install jupyter
+Expansion basica:
 
-2. Instala el paquete:
-   pip install legal-expand
+  from legal_expand import expandir_siglas
 
-3. Abre el notebook:
-   jupyter notebook legal_expand_demo.ipynb
+  texto = "La AEAT gestiona el IVA segun el BOE."
+  print(expandir_siglas(texto))
+
+Salida estructurada:
+
+  from legal_expand import ExpansionOptions, expandir_siglas
+
+  resultado = expandir_siglas(
+      "AEAT y BOE",
+      ExpansionOptions(format="structured"),
+  )
+  print(resultado.to_json(indent=2))
+
+Diagnostico de omisiones:
+
+  from legal_expand import ExpansionOptions, expandir_siglas_detallado
+
+  resultado = expandir_siglas_detallado(
+      "Visita https://aeat.es y revisa AEAT y BOE",
+      ExpansionOptions(include=["AEAT"]),
+  )
+  for omitida in resultado.omitted_acronyms:
+      print(omitida.acronym, omitida.reason)
 
 
-CONTENIDO DE LA DEMO
+ASISTENTE BOE
 --------------------------------------------------------------------------------
 
-El notebook incluye 11 secciones:
+El asistente BOE no interpreta juridicamente el documento. Detecta referencias
+explicitas, enlaza normas cuando hay seguridad suficiente y marca lo dudoso como
+ambiguous, not-found, unsupported o needs-boe-search.
 
- 1. Instalacion
- 2. Uso basico (expansion simple, multiple, variantes)
- 3. Formatos de salida (plain, html, structured)
- 4. Control global (configurar_globalmente, resetear, force_expansion)
- 5. Opciones avanzadas (expand_only_first, exclude, include)
- 6. Funciones auxiliares (buscar_sigla, listar_siglas, obtener_estadisticas)
- 7. Proteccion de contextos (URLs, emails, codigo)
- 8. Casos de uso por perfil (estudiantes, opositores, academias, etc.)
- 9. Ejemplos de documentos reales (sentencia, contrato, notificacion, etc.)
-10. Extensibilidad (crear formatters personalizados)
-11. Herramientas interactivas (buscador, expansor, analizador)
+Modo offline, determinista y sin red:
+
+  legal-expand boe sentencia.txt --output referencias-boe.md
+
+Salida JSON:
+
+  legal-expand boe sentencia.txt --report-format json --output referencias-boe.json
+
+Modo con cache y consulta opcional a BOE:
+
+  legal-expand boe sentencia.txt --mode cache-first --timeout 4 --output referencias-boe.md
+
+Python:
+
+  from legal_expand import detectar_referencias_boe, boe_report_to_markdown
+
+  texto = "El art. 24 de la Constitucion Espanola reconoce la tutela judicial."
+  informe = detectar_referencias_boe(texto)
+  print(boe_report_to_markdown(informe))
 
 
-EJEMPLOS RAPIDOS
+OVERRIDES MANUALES BOE
 --------------------------------------------------------------------------------
 
-# Expansion basica
-from legal_expand import expandir_siglas
-expandir_siglas('La AEAT gestiona el IVA')
-# -> 'La AEAT (Agencia Estatal...) gestiona el IVA (Impuesto...)'
+Si el detector no puede resolver una referencia y la persona revisora si conoce
+la norma correcta, se puede anadir un override JSON:
 
-# Formato HTML (para web)
-from legal_expand import ExpansionOptions
-expandir_siglas('La AEAT', ExpansionOptions(format='html'))
-# -> '<abbr title="Agencia...">AEAT</abbr> (Agencia...)'
+  {
+    "references": [
+      {
+        "text": "la norma especial de informantes",
+        "boe_id": "BOE-A-2023-4513",
+        "title": "Ley 2/2023, de 20 de febrero",
+        "unit": "articulo 42"
+      }
+    ]
+  }
 
-# Solo primera ocurrencia (documentos largos)
-expandir_siglas('AEAT... AEAT... AEAT', ExpansionOptions(expand_only_first=True))
-# -> 'AEAT (Agencia...)... AEAT... AEAT'
+Uso:
 
-# Buscar una sigla
-from legal_expand import buscar_sigla
-buscar_sigla('BOE')
-# -> AcronymSearchResult(acronym='BOE', meanings=['Boletin Oficial...'])
+  legal-expand boe informe.md --overrides boe-overrides.json --output referencias-boe.md
+
+Las referencias manuales aparecen con estado `manual` para distinguirlas de lo
+detectado automaticamente.
+
+
+CALIDAD Y VERIFICACION
+--------------------------------------------------------------------------------
+
+La release 1.4.1 es una release de mantenimiento tras revisar code smells:
+
+  - Ruff general: OK
+  - Ruff estricto sobre src/legal_expand: OK
+  - mypy: OK
+  - Bandit: sin issues identificados
+  - pytest con cobertura: 107 tests
+  - build wheel/sdist: OK
+  - smoke install desde wheel: OK
+  - GitHub CI Python 3.9 a 3.14: OK
+
+SonarScanner esta configurado para SonarQube Cloud con:
+
+  sonar.organization=686f6c61
+  sonar.projectKey=legal-expand
+
+Para ejecutar el analisis remoto hace falta que el proyecto exista en SonarCloud
+o que el entorno tenga `SONAR_TOKEN` con permisos sobre ese proyecto.
 
 
 RECURSOS
@@ -93,13 +166,8 @@ RECURSOS
 
 PyPI:       https://pypi.org/project/legal-expand/
 GitHub:     https://github.com/686f6c61/pypi-legal-expand
-npm:        https://www.npmjs.com/package/legal-expand (version JavaScript)
-
-
-LICENCIA
---------------------------------------------------------------------------------
-
-MIT - Uso libre para cualquier proposito.
-
+Colab:      https://colab.research.google.com/github/686f6c61/pypi-legal-expand/blob/main/legal_expand_demo.ipynb
+npm:        https://www.npmjs.com/package/legal-expand
+Licencia:   MIT
 
 ================================================================================
