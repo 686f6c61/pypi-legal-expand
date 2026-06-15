@@ -28,8 +28,8 @@ htmlcov/
 .tox/
 .nox/
 
-# SonarQube / scanner local output
 .scannerwork/
+sonar-project.properties
 
 # IDEs
 .idea/

@@ -64,7 +64,7 @@ jobs:
           python -m venv /tmp/legal-expand-wheel
           /tmp/legal-expand-wheel/bin/python -m pip install --upgrade pip
           /tmp/legal-expand-wheel/bin/python -m pip install dist/*.whl
-          /tmp/legal-expand-wheel/bin/python -c "from legal_expand import __version__, expandir_siglas; assert __version__ == '1.5.1'; assert 'Agencia Estatal' in expandir_siglas('AEAT')"
+          /tmp/legal-expand-wheel/bin/python -c "from legal_expand import __version__, expandir_siglas; assert __version__ == '1.5.2'; assert 'Agencia Estatal' in expandir_siglas('AEAT')"
           /tmp/legal-expand-wheel/bin/legal-expand info
 
       - name: Upload distribution artifact

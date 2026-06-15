@@ -1,5 +1,5 @@
 ================================================================================
-                    DEMO Y GUIA RAPIDA - legal-expand 1.5.1
+                    DEMO Y GUIA RAPIDA - legal-expand 1.5.2
           646 siglas legales espanolas + asistente BOE determinista
 ================================================================================
 
@@ -18,7 +18,7 @@ Abre la demo interactiva:
 
 La primera celda instala la version exacta:
 
-  !pip install -U legal-expand==1.5.1 -q
+  !pip install -U legal-expand==1.5.2 -q
 
 El notebook cubre expansion de siglas, diagnostico, auditoria, glosarios,
 procesamiento batch, diccionarios personalizados, CLI y una matriz BOE de 25
@@ -26,12 +26,12 @@ casos con referencias resueltas, ambiguas, no soportadas, manuales, revision
 explicada, HTML, informe por parrafos y plantilla de overrides.
 
 
-OPCION 2: TERMINAL LOCAL
+OPCION 2: TERMINAL
 --------------------------------------------------------------------------------
 
 Instalar:
 
-  python -m pip install -U legal-expand==1.5.1
+  python -m pip install -U legal-expand==1.5.2
 
 Expandir texto desde stdin:
 
@@ -176,28 +176,15 @@ la unidad detectada si existe, candidatos cuando los haya y una nota explicativa
 CALIDAD Y VERIFICACION
 --------------------------------------------------------------------------------
 
-La release 1.5.1 mantiene la API de 1.5.0 y refuerza la publicacion con
-cobertura real sobre BOE, CLI, documentos, serializacion, cache y parsers.
+La release 1.5.2 mantiene la API de 1.5.1 y corrige la presentacion publica
+de la documentacion, badges y demo reproducible.
 Antes de publicarla hay que validar:
 
-  - pytest con cobertura y gate minimo 90%: OK
+  - pytest con cobertura y umbral minimo 90%: OK
   - Bandit: sin issues identificados
   - build wheel/sdist: OK
   - twine check: OK
   - smoke install desde wheel: OK
-  - SonarScanner contra SonarQube Docker local: Quality Gate OK
-
-La ultima verificacion local dejo 129 tests pasados, cobertura global 94.83%,
-BOE 96%, CLI 97%, cobertura nueva 97.4%, 0 bugs, 0 vulnerabilidades,
-0 code smells y 0 issues abiertos en SonarQube.
-
-SonarScanner esta configurado para SonarQube local en Docker con:
-
-  sonar.projectKey=legal-expand
-  sonar.host.url=http://localhost:9000
-
-Para ejecutar el analisis hace falta que el contenedor SonarQube este levantado
-en `localhost:9000` y que el scanner tenga un token valido de ese servidor.
 
 
 RECURSOS

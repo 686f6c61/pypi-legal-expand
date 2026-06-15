@@ -5,22 +5,36 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.5.2] - 2026-06-15
+
+### Cambiado
+
+- Badges del README corregidos con labels limpios y fuentes dinámicas para PyPI, GitHub Release, CI, licencia, Python y Colab.
+- Demo de Google Colab actualizada a `legal-expand==1.5.2`.
+- `DEMO.txt` actualizado para instalar `1.5.2`.
+- Versiones de paquete y workflows de CI/publicación actualizadas a `1.5.2`.
+
+### Verificado
+
+- Suite completa de tests con umbral de cobertura del `90%`.
+- Bandit sin issues accionables.
+- Build wheel/sdist, `twine check` y smoke install desde wheel: OK.
+
 ## [1.5.1] - 2026-06-15
 
 ### Cambiado
 
-- README actualizado para documentar `1.5.1` como release de robustez, con cobertura real, Quality Gate y alcance estable del asistente BOE.
-- Demo de Google Colab actualizada a `legal-expand==1.5.1`, con nota explícita sobre el gate de cobertura y los flujos BOE/CLI reforzados.
+- README actualizado para documentar `1.5.1` como release de robustez, con cobertura real y alcance estable del asistente BOE.
+- Demo de Google Colab actualizada a `legal-expand==1.5.1`, con nota explícita sobre el umbral de cobertura y los flujos BOE/CLI reforzados.
 - `DEMO.txt` actualizado para instalar `1.5.1` y reflejar la batería actual de validación.
-- Versiones de paquete, workflows de CI/publicación y configuración Sonar actualizadas a `1.5.1`.
+- Versiones de paquete y workflows de CI/publicación actualizadas a `1.5.1`.
 
 ### Verificado
 
 - Añadidas pruebas deterministas para cliente BOE, caché, errores de red simulados, parsers JSON/XML, overrides, CLI, documentos, normalizador y serialización.
-- Gate de cobertura configurado en `90%` en `pyproject.toml`, CI y workflow de publicación.
-- Suite local: `129` tests pasados con cobertura global `94.83%`; BOE `96%`; CLI `97%`.
+- Umbral de cobertura configurado en `90%` en `pyproject.toml`, CI y workflow de publicación.
+- Suite completa: `129` tests pasados con cobertura global `94.83%`; BOE `96%`; CLI `97%`.
 - Bandit sin issues accionables, build wheel/sdist OK, `twine check` OK y smoke install desde wheel OK.
-- SonarQube local en Docker (`http://localhost:9000`) con Quality Gate `OK`, cobertura `94.8%`, cobertura nueva `97.4%`, `0` bugs, `0` vulnerabilidades, `0` code smells, `0` issues abiertos y duplicación nueva `0.0%`.
 
 ## [1.5.0] - 2026-06-15
 
@@ -37,13 +51,12 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 - El informe Markdown BOE incluye explicación y acción sugerida en referencias resueltas, pendientes y no soportadas.
 - README, demo de Colab y `DEMO.txt` actualizados para explicar límites, casos de uso, revisión manual y salidas nuevas del asistente BOE.
-- Versiones de paquete, workflows de CI/publicación y configuración Sonar actualizadas a `1.5.0`.
+- Versiones de paquete y workflows de CI/publicación actualizadas a `1.5.0`.
 
 ### Verificado
 
 - Matriz BOE extendida con pruebas de revisión explicada, plantilla de overrides, HTML, informe por párrafos y CLI.
-- SonarQube local en Docker (`http://localhost:9000`) con Quality Gate `OK`, `0` issues abiertos, cobertura nueva `81.4%`, duplicación nueva `0.0%` y violaciones nuevas `0`.
-- Batería local de calidad ampliada a 115 tests.
+- Batería de calidad ampliada a 115 tests.
 
 ## [1.4.1] - 2026-06-15
 
@@ -54,7 +67,6 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - Matcher de siglas reorganizado con objetos internos para metadata del índice y resolución de matches, reduciendo code smells sin afectar al diccionario ni al resultado.
 - Demo de Google Colab actualizada a `legal-expand==1.4.1` y limpiada de imports no usados.
 - `DEMO.txt` rehecho como guía real de Colab, CLI, Python, BOE, overrides y validación de calidad.
-- Configuración Sonar actualizada a la versión `1.4.1` y organización `686f6c61`.
 
 ### Corregido
 
@@ -68,7 +80,6 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - `pytest --cov`: 107 tests pasados.
 - `compileall`, build wheel/sdist y smoke install desde wheel: OK.
 - CI de GitHub en Python 3.9, 3.10, 3.11, 3.12, 3.13 y 3.14: OK.
-- SonarScanner conecta con SonarQube Cloud, pero el análisis remoto requiere que exista el proyecto o que se configure `SONAR_TOKEN`; el servidor devuelve `Project not found` antes de ejecutar el análisis.
 
 ## [1.4.0] - 2026-06-15
 

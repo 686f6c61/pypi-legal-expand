@@ -1,8 +1,9 @@
-[![PyPI version](https://img.shields.io/pypi/v/legal-expand.svg?label=PyPI&cacheSeconds=300)](https://pypi.org/project/legal-expand/)
-[![Release](https://img.shields.io/badge/release-1.5.1-blue.svg)](https://github.com/686f6c61/pypi-legal-expand/releases/tag/v1.5.1)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python versions](https://img.shields.io/pypi/pyversions/legal-expand.svg)](https://pypi.org/project/legal-expand/)
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/686f6c61/pypi-legal-expand/blob/main/legal_expand_demo.ipynb)
+[![PyPI](https://img.shields.io/pypi/v/legal-expand?label=PyPI)](https://pypi.org/project/legal-expand/)
+[![GitHub Release](https://img.shields.io/github/v/release/686f6c61/pypi-legal-expand?label=GitHub%20Release)](https://github.com/686f6c61/pypi-legal-expand/releases)
+[![CI](https://github.com/686f6c61/pypi-legal-expand/actions/workflows/ci.yml/badge.svg)](https://github.com/686f6c61/pypi-legal-expand/actions/workflows/ci.yml)
+[![License](https://img.shields.io/pypi/l/legal-expand?label=License)](https://pypi.org/project/legal-expand/)
+[![Python](https://img.shields.io/pypi/pyversions/legal-expand?label=Python)](https://pypi.org/project/legal-expand/)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/686f6c61/pypi-legal-expand/blob/main/legal_expand_demo.ipynb)
 
 # Siglas legales españolas para documentos jurídicos
 
@@ -44,16 +45,16 @@ Prueba el paquete sin instalar nada:
 
 El notebook incluye ejemplos de todos los casos de uso: expansión básica, formatos de salida, configuración global, documentos reales, herramientas interactivas y una sección BOE con matriz de 25 casos, revisión explicada, salidas Markdown/HTML/por párrafos, referencias ambiguas, normativa UE no soportada y overrides manuales.
 
-## Estado de la versión 1.5.1
+## Estado de la versión 1.5.2
 
-`1.5.1` es una release de robustez y publicación. Mantiene la API de `1.5.0` y refuerza la confianza del paquete con más cobertura real sobre BOE, CLI, documentos, serialización, errores de red simulados, caché y parsers JSON/XML. No cambia el comportamiento funcional del asistente BOE: sigue siendo conservador y determinista, y si una referencia no es inequívoca la marca para revisión en lugar de inventar un enlace.
+`1.5.2` es una release de documentación y publicación. Mantiene la API de `1.5.1`, corrige la fila de badges del README y deja las notas públicas centradas en el comportamiento del paquete. No cambia el comportamiento funcional del asistente BOE: sigue siendo conservador y determinista, y si una referencia no es inequívoca la marca para revisión en lugar de inventar un enlace.
 
-La verificación local de la release incluye tests con cobertura y gate mínimo del `90%`, Bandit, build wheel/sdist, `twine check`, smoke install desde wheel y SonarScanner contra SonarQube en Docker (`http://localhost:9000`) antes de publicar. La última revisión local dejó `129` tests pasados, cobertura global `94.83%`, BOE `96%`, CLI `97%`, Quality Gate `OK`, `0` issues abiertos, `0` bugs, `0` vulnerabilidades, `0` code smells, cobertura nueva `97.4%` y duplicación nueva `0.0%`.
+La verificación de la release incluye tests con cobertura y umbral mínimo del `90%`, Bandit, build wheel/sdist, `twine check` y smoke install desde wheel antes de publicar.
 
 ## Índice
 
 - [Demo interactiva](#demo-interactiva)
-- [Estado de la versión 1.5.1](#estado-de-la-versión-151)
+- [Estado de la versión 1.5.2](#estado-de-la-versión-152)
 - [Instalación](#instalación)
 - [CLI](#cli)
 - [Uso básico](#uso-básico)
