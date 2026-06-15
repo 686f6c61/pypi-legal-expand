@@ -15,6 +15,7 @@ from legal_expand import (
     enriquecer_boe,
 )
 from legal_expand.cli import main as cli_main
+from legal_expand.boe import BOEClient, _parse_norms
 
 
 class FakeBOEClient:
@@ -348,3 +349,20 @@ def test_boe_markdown_y_cli_json(capsys, tmp_path):
     data = json.loads(capsys.readouterr().out)
     assert data['stats']['total_detected'] == 1
     assert data['references'][0]['norm']['boe_id'] == 'BOE-A-2015-10565'
+
+
+def test_boe_client_solo_permite_base_url_oficial():
+    with pytest.raises(ValueError):
+        BOEClient(base_url='file:///tmp/fake')
+
+    with pytest.raises(ValueError):
+        BOEClient(base_url='https://example.com')
+
+
+def test_boe_xml_rechaza_doctype_y_entity():
+    xml = """<?xml version="1.0"?>
+<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
+<response><identificador>&xxe;</identificador></response>
+"""
+
+    assert _parse_norms(xml) == []

@@ -184,6 +184,9 @@ class BOEClient:
     def __init__(self, options: Optional[BOEOptions] = None, base_url: str = BOE_BASE_URL):
         self.options = options or BOEOptions()
         self.base_url = base_url.rstrip('/')
+        parsed_base = urllib.parse.urlparse(self.base_url)
+        if parsed_base.scheme != 'https' or parsed_base.netloc != 'www.boe.es':
+            raise ValueError('BOEClient only allows https://www.boe.es as base_url')
 
     def _cache_dir(self) -> Path:
         if self.options.cache_path:
@@ -232,7 +235,11 @@ class BOEClient:
             },
         )
         try:
-            with urllib.request.urlopen(request, timeout=self.options.timeout_seconds) as response:
+            # base_url is restricted to https://www.boe.es in __init__.
+            with urllib.request.urlopen(  # nosec B310
+                request,
+                timeout=self.options.timeout_seconds,
+            ) as response:
                 body = response.read().decode('utf-8', errors='replace')
         except Exception as exc:  # pragma: no cover - depends on network
             raise BOENetworkError(str(exc)) from exc
@@ -321,7 +328,7 @@ def _parse_norms_json(data: Any) -> list[BOENorm]:
 
 def _parse_norms_xml(body: str) -> list[BOENorm]:
     try:
-        root = ET.fromstring(body)
+        root = _xml_fromstring(body)
     except ET.ParseError:
         return []
 
@@ -365,7 +372,7 @@ def _parse_index_json(data: Any) -> list[dict[str, str]]:
 
 def _parse_index_xml(body: str) -> list[dict[str, str]]:
     try:
-        root = ET.fromstring(body)
+        root = _xml_fromstring(body)
     except ET.ParseError:
         return []
     blocks: list[dict[str, str]] = []
@@ -396,10 +403,18 @@ def _plain_text(body: str) -> str:
         ]
         return re.sub(r'\s+', ' ', ' '.join(parts)).strip()
     try:
-        root = ET.fromstring(body)
+        root = _xml_fromstring(body)
     except ET.ParseError:
         return re.sub(r'\s+', ' ', body).strip()
     return re.sub(r'\s+', ' ', ''.join(root.itertext())).strip()
+
+
+def _xml_fromstring(body: str) -> ET.Element:
+    lowered = body[:1000].lower()
+    if '<!doctype' in lowered or '<!entity' in lowered:
+        raise ET.ParseError('unsafe XML declaration rejected')
+    # DTD/entity declarations are rejected before parsing.
+    return ET.fromstring(body)  # nosec B314
 
 
 def _iter_dicts(value: Any) -> list[dict[str, Any]]:
