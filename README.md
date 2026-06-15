@@ -1,4 +1,5 @@
 [![PyPI version](https://img.shields.io/pypi/v/legal-expand.svg?label=PyPI&cacheSeconds=300)](https://pypi.org/project/legal-expand/)
+[![Release](https://img.shields.io/badge/release-1.5.1-blue.svg)](https://github.com/686f6c61/pypi-legal-expand/releases/tag/v1.5.1)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python versions](https://img.shields.io/pypi/pyversions/legal-expand.svg)](https://pypi.org/project/legal-expand/)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/686f6c61/pypi-legal-expand/blob/main/legal_expand_demo.ipynb)
@@ -43,16 +44,16 @@ Prueba el paquete sin instalar nada:
 
 El notebook incluye ejemplos de todos los casos de uso: expansión básica, formatos de salida, configuración global, documentos reales, herramientas interactivas y una sección BOE con matriz de 25 casos, revisión explicada, salidas Markdown/HTML/por párrafos, referencias ambiguas, normativa UE no soportada y overrides manuales.
 
-## Estado de la versión 1.5.0
+## Estado de la versión 1.5.1
 
-`1.5.0` refuerza el asistente BOE como flujo de revisión: añade explicaciones por referencia, salida agrupada para revisión humana, informe HTML, informe por párrafos y generación de plantilla JSON para overrides. La detección sigue siendo conservadora y determinista: si una referencia no es inequívoca, se marca para revisión en lugar de inventar un enlace.
+`1.5.1` es una release de robustez y publicación. Mantiene la API de `1.5.0` y refuerza la confianza del paquete con más cobertura real sobre BOE, CLI, documentos, serialización, errores de red simulados, caché y parsers JSON/XML. No cambia el comportamiento funcional del asistente BOE: sigue siendo conservador y determinista, y si una referencia no es inequívoca la marca para revisión en lugar de inventar un enlace.
 
-La verificación local de la release incluye Ruff, perfil estricto de smells sobre `src/legal_expand`, mypy, Bandit, tests con cobertura, build wheel/sdist, smoke install desde wheel y SonarScanner contra SonarQube en Docker (`http://localhost:9000`) antes de publicar. La última revisión local dejó Quality Gate `OK`, `0` issues abiertos, cobertura nueva `81.4%`, duplicación nueva `0.0%` y violaciones nuevas `0`.
+La verificación local de la release incluye tests con cobertura y gate mínimo del `90%`, Bandit, build wheel/sdist, `twine check`, smoke install desde wheel y SonarScanner contra SonarQube en Docker (`http://localhost:9000`) antes de publicar. La última revisión local dejó `129` tests pasados, cobertura global `94.83%`, BOE `96%`, CLI `97%`, Quality Gate `OK`, `0` issues abiertos, `0` bugs, `0` vulnerabilidades, `0` code smells, cobertura nueva `97.4%` y duplicación nueva `0.0%`.
 
 ## Índice
 
 - [Demo interactiva](#demo-interactiva)
-- [Estado de la versión 1.5.0](#estado-de-la-versión-150)
+- [Estado de la versión 1.5.1](#estado-de-la-versión-151)
 - [Instalación](#instalación)
 - [CLI](#cli)
 - [Uso básico](#uso-básico)

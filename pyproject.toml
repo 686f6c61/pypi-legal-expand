@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "legal-expand"
-version = "1.5.0"
+version = "1.5.1"
 description = "Smart expansion, CLI, audit, glossary and batch processing for Spanish legal acronyms. 646 verified acronyms from RAE, BOE and DPEJ. | Expansión inteligente de siglas legales españolas."
 readme = "README.md"
 license = "MIT"
@@ -80,6 +80,8 @@ source = ["src/legal_expand"]
 branch = true
 
 [tool.coverage.report]
+fail_under = 90
+show_missing = true
 exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",

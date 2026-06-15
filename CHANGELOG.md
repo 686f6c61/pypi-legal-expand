@@ -5,6 +5,23 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.5.1] - 2026-06-15
+
+### Cambiado
+
+- README actualizado para documentar `1.5.1` como release de robustez, con cobertura real, Quality Gate y alcance estable del asistente BOE.
+- Demo de Google Colab actualizada a `legal-expand==1.5.1`, con nota explícita sobre el gate de cobertura y los flujos BOE/CLI reforzados.
+- `DEMO.txt` actualizado para instalar `1.5.1` y reflejar la batería actual de validación.
+- Versiones de paquete, workflows de CI/publicación y configuración Sonar actualizadas a `1.5.1`.
+
+### Verificado
+
+- Añadidas pruebas deterministas para cliente BOE, caché, errores de red simulados, parsers JSON/XML, overrides, CLI, documentos, normalizador y serialización.
+- Gate de cobertura configurado en `90%` en `pyproject.toml`, CI y workflow de publicación.
+- Suite local: `129` tests pasados con cobertura global `94.83%`; BOE `96%`; CLI `97%`.
+- Bandit sin issues accionables, build wheel/sdist OK, `twine check` OK y smoke install desde wheel OK.
+- SonarQube local en Docker (`http://localhost:9000`) con Quality Gate `OK`, cobertura `94.8%`, cobertura nueva `97.4%`, `0` bugs, `0` vulnerabilidades, `0` code smells, `0` issues abiertos y duplicación nueva `0.0%`.
+
 ## [1.5.0] - 2026-06-15
 
 ### Añadido
