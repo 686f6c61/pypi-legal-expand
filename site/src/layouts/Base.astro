@@ -12,6 +12,8 @@ const {
 } = Astro.props;
 
 const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : Astro.url.pathname;
+// URL del proxy BOE (para el modo online). Se define con PUBLIC_BOE_PROXY.
+const boeProxy = import.meta.env.PUBLIC_BOE_PROXY || '';
 ---
 
 <!doctype html>
@@ -59,6 +61,7 @@ const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : As
   </head>
   <body>
     <a class="skip-link" href="#main">Saltar al contenido</a>
+    {boeProxy && <script is:inline set:html={`window.__BOE_PROXY__=${JSON.stringify(boeProxy)}`} />}
     <slot />
     <div class="copy-toast" id="copy-toast" role="status" aria-live="polite"></div>
   </body>

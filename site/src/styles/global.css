@@ -634,7 +634,28 @@ section {
   vertical-align: top;
 }
 .output-surface thead th { background: var(--surface-deep); font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+.output-surface td { word-break: break-word; }
 .output-surface a { color: var(--forest); text-decoration: underline; text-underline-offset: 2px; word-break: break-all; }
+
+/* Anchos fijos para la tabla del informe BOE (7 columnas) */
+.output-surface .legal-expand-boe table { table-layout: fixed; }
+.output-surface .legal-expand-boe th:nth-child(1),
+.output-surface .legal-expand-boe td:nth-child(1) { width: 11%; }
+.output-surface .legal-expand-boe th:nth-child(2),
+.output-surface .legal-expand-boe td:nth-child(2) { width: 9%; }
+.output-surface .legal-expand-boe th:nth-child(3),
+.output-surface .legal-expand-boe td:nth-child(3) { width: 13%; }
+.output-surface .legal-expand-boe th:nth-child(4),
+.output-surface .legal-expand-boe td:nth-child(4) { width: 7%; }
+.output-surface .legal-expand-boe th:nth-child(5),
+.output-surface .legal-expand-boe td:nth-child(5) { width: 20%; }
+.output-surface .legal-expand-boe th:nth-child(6),
+.output-surface .legal-expand-boe td:nth-child(6) { width: 22%; }
+.output-surface .legal-expand-boe th:nth-child(7),
+.output-surface .legal-expand-boe td:nth-child(7) { width: 18%; }
+/* La fila con el texto del artículo ocupa todo el ancho */
+.output-surface .legal-expand-boe td.boe-unit-text,
+.output-surface .legal-expand-boe .boe-unit-text td { width: auto; }
 .output-surface details {
   margin-top: 6px;
   padding: 8px 10px;
@@ -642,7 +663,17 @@ section {
   border-radius: var(--radius);
 }
 .output-surface summary { cursor: pointer; font-weight: 600; font-family: var(--font-sans); }
-.output-surface details p { margin: 8px 0 0; font-family: var(--font-sans); font-size: 13px; line-height: 1.55; }
+.output-surface details p {
+  margin: 10px 0 0;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 1.68;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.output-surface .art-parrafo { display: block; margin: 0 0 10px; }
+.output-surface .art-parrafo:first-child { font-weight: 600; }
+.output-surface .art-parrafo:last-child { margin-bottom: 0; }
 .output-surface .notice {
   margin: 0 0 12px;
   padding: 8px 12px;
@@ -897,6 +928,43 @@ section {
 .boe-step span { font-family: var(--font-mono); font-size: 12px; color: var(--terracotta); }
 .boe-step strong { display: block; margin: 6px 0 4px; }
 .boe-step small { color: #b6c6bc; }
+
+/* ---------- config table ---------- */
+
+.config-section { padding-bottom: 64px; }
+
+.config-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 32px;
+  font-size: 0.95rem;
+}
+
+.config-table th,
+.config-table td {
+  text-align: left;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.config-table thead th {
+  background: var(--surface-deep);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.config-table td:first-child { width: 42%; }
+
+.config-table code {
+  font-size: 0.85em;
+  background: var(--sand);
+  padding: 2px 7px;
+  border-radius: 3px;
+  word-break: break-word;
+}
 
 /* ---------- boundary table ---------- */
 

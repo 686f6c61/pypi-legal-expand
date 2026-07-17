@@ -1,7 +1,7 @@
 // Demo interactiva: ejecuta el paquete real legal-expand en el navegador con Pyodide.
 import { loadPyodide } from 'https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.mjs';
 
-const WHEEL_URL = '/wheels/legal_expand-1.5.2-py3-none-any.whl';
+const WHEEL_URL = '/wheels/legal_expand-1.6.0-py3-none-any.whl';
 // Proxy opcional para sortear CORS al traer artículos del BOE (modo online).
 // Configúralo en el hosting con: window.__BOE_PROXY__ = 'https://tu-proxy/boe';
 // Acepta el patrón con '{path}' o simple concatenación proxy + path.
@@ -135,6 +135,23 @@ function renderMeta(meta) {
   });
 }
 
+// Separa el texto de un artículo del BOE en sus apartados numerados para
+// que se lea como un articulado y no como un bloque denso.
+function formatBoeArticles(root) {
+  root.querySelectorAll('.boe-unit-text details p').forEach((p) => {
+    const text = p.textContent.trim();
+    const parts = text.split(/\s+(?=\d{1,2}\.\s+[A-ZÁÉÍÓÚÑ])/);
+    if (parts.length <= 1) return;
+    p.textContent = '';
+    parts.forEach((part) => {
+      const span = document.createElement('span');
+      span.className = 'art-parrafo';
+      span.textContent = part.trim();
+      p.appendChild(span);
+    });
+  });
+}
+
 function showOutput(payload) {
   lastHtml = null;
   if (els.renderToggle) els.renderToggle.hidden = true;
@@ -142,6 +159,7 @@ function showOutput(payload) {
     // Informes (auditoría, glosario, BOE): HTML generado por el paquete o
     // construido con valores escapados. Se renderiza directamente.
     els.output.innerHTML = payload.output;
+    formatBoeArticles(els.output);
   } else if (payload.is_html) {
     // Expansión en formato HTML: toggle entre código escapado y vista.
     lastHtml = payload.output;

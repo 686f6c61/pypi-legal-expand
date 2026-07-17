@@ -3,7 +3,7 @@ import Base from '../layouts/Base.astro';
 import edgeCases from '../data/edgecases.json';
 import examples from '../data/examples.json';
 
-const version = '1.5.2';
+const version = '1.6.0';
 const colabUrl = 'https://colab.research.google.com/github/686f6c61/pypi-legal-expand/blob/main/legal_expand_demo.ipynb';
 
 const features = [
@@ -13,6 +13,21 @@ const features = [
   { i: '04', accent: 'accent-sky', title: 'Tres formatos', body: 'Texto plano, HTML semántico con <abbr> y salida estructurada JSON con estadísticas de procesamiento.' },
   { i: '05', accent: 'accent-ink', title: 'Diccionarios propios', body: 'Amplía el diccionario base con tus siglas en JSON o CSV, con prioridades y palabras de contexto.' },
   { i: '06', accent: 'accent-sand', title: 'CLI y lotes', body: 'Interfaz de línea de comandos para expandir, auditar, exportar glosarios y procesar carpetas enteras.' },
+];
+
+const configCases = [
+  { caso: 'Expandir siglas en un texto', config: 'expandir_siglas(texto)' },
+  { caso: 'Salida HTML con &lt;abbr&gt;', config: 'ExpansionOptions(format="html")' },
+  { caso: 'Salida estructurada (JSON)', config: 'ExpansionOptions(format="structured")' },
+  { caso: 'Solo la primera aparición', config: 'ExpansionOptions(expand_only_first=True)' },
+  { caso: 'Excluir o limitar siglas', config: 'ExpansionOptions(exclude=[...], include=[...])' },
+  { caso: 'Diccionario propio (JSON/CSV)', config: 'ExpansionOptions(custom_dictionaries=["mio.json"])' },
+  { caso: 'Auditar un documento', config: 'auditar_texto(texto)' },
+  { caso: 'Glosario único', config: 'exportar_glosario(texto, "markdown")' },
+  { caso: 'Detectar y enlazar normas BOE (offline)', config: 'enriquecer_boe(texto, BOEOptions(mode="offline"))' },
+  { caso: 'Resolver cualquier norma por su número', config: 'BOEOptions(use_boe_index=True)  # por defecto' },
+  { caso: 'Traer el artículo completo del BOE', config: 'BOEOptions(mode="online", include_unit_text=True)' },
+  { caso: 'Procesar una carpeta entera', config: 'procesar_directorio("entrada", "salida")' },
 ];
 
 const codeSamples = {
@@ -48,15 +63,20 @@ for entrada in informe.glossary:
     code: `from legal_expand import enriquecer_boe
 from legal_expand.types import BOEOptions
 
-texto = "El art. 14 de la Ley 39/2015 regula la relación electrónica."
+texto = "El art. 14 de la Ley 39/2015 y el art. 5 de la Ley 19/2013."
 
-# Detección offline (sin red): normas, unidades y enlaces oficiales
-informe = enriquecer_boe(texto, BOEOptions(mode="offline"))
+# Nivel 1 · Detectar y enlazar (offline, sin red).
+# Resuelve CUALQUIER norma española por su número (índice del catálogo BOE).
+n1 = enriquecer_boe(texto, BOEOptions(mode="offline"))
 
-# Online: trae el texto real del artículo desde el BOE
-online = enriquecer_boe(texto, BOEOptions(mode="online"))
-for ref in online.references:
-    print(ref.status, ref.norm and ref.norm.url)`,
+# Nivel 2 · Confirmar en el BOE (online, sin traer texto).
+n2 = enriquecer_boe(texto, BOEOptions(mode="online", include_unit_text=False))
+
+# Nivel 3 · Traer el artículo completo (online + texto íntegro).
+n3 = enriquecer_boe(texto, BOEOptions(mode="online", include_unit_text=True))
+for ref in n3.references:
+    for bloque in ref.unit_blocks:
+        print(bloque.title, "->", bloque.text[:80])`,
   },
   cli: {
     file: 'terminal',
@@ -82,8 +102,8 @@ legal-expand batch ./entrada ./salida`,
     <nav class="site-nav" aria-label="Navegación principal">
       <a href="#demo">Demo</a>
       <a href="#edge">Casos límite</a>
-      <a href="#features">Capacidades</a>
       <a href="#boe">BOE</a>
+      <a href="#config">Configurar</a>
       <a href="#api">API</a>
     </nav>
     <a class="header-link" href="https://github.com/686f6c61/pypi-legal-expand">GitHub</a>
@@ -97,7 +117,8 @@ legal-expand batch ./entrada ./salida`,
         <h1 id="hero-title">Las siglas del derecho español,<br /><mark>expandidas y auditadas.</mark></h1>
         <p class="hero-lede">
           legal-expand detecta siglas legales, las expande con su significado oficial, audita documentos y
-          enlaza referencias del BOE. Sin dependencias, con CLI y tres formatos de salida.
+          resuelve referencias del BOE: enlaza cualquier norma española por su número y trae el texto
+          íntegro de sus artículos. Sin dependencias, con CLI y tres formatos de salida.
         </p>
         <div class="hero-cta-row">
           <div class="install-line" role="group" aria-label="Comando de instalación">
@@ -111,7 +132,8 @@ legal-expand batch ./entrada ./salida`,
           <span>Python 3.9+</span>
           <span>0 dependencias</span>
           <span>646 siglas</span>
-          <span>RAE · BOE · DPEJ</span>
+          <span>10.555 normas BOE</span>
+          <span>artículos en vivo</span>
         </div>
       </div>
     </section>
@@ -242,7 +264,7 @@ legal-expand batch ./entrada ./salida`,
       </div>
       <div class="page-shell boe-steps">
         <div class="boe-step"><span>01</span><strong>Detectar</strong><small>artículos, disposiciones, anexos y BOE-A directos</small></div>
-        <div class="boe-step"><span>02</span><strong>Resolver</strong><small>alias curados y búsqueda en la API del BOE</small></div>
+        <div class="boe-step"><span>02</span><strong>Resolver</strong><small>índice del catálogo: cualquier norma por su número</small></div>
         <div class="boe-step"><span>03</span><strong>Traer</strong><small>texto del artículo desde la legislación consolidada</small></div>
         <div class="boe-step"><span>04</span><strong>Avisar</strong><small>ambigüedad marcada; nada se inventa</small></div>
       </div>
@@ -276,6 +298,29 @@ legal-expand batch ./entrada ./salida`,
           <pre><code id="code-sample">{codeSamples.sdk.code}</code></pre>
         </div>
       </div>
+    </section>
+
+    <!-- CONFIGURACIÓN POR CASO -->
+    <section class="config-section page-shell band-line" id="config" aria-labelledby="config-title">
+      <div class="section-heading">
+        <p class="eyebrow">Cómo configurarlo</p>
+        <h2 id="config-title">Un caso, una línea.</h2>
+        <p>Cada necesidad se cubre con una función o una opción. Estos son los casos más habituales.</p>
+      </div>
+      <table class="config-table">
+        <caption class="visually-hidden">Casos de uso y su configuración</caption>
+        <thead>
+          <tr><th scope="col">Quiero…</th><th scope="col">Configuración</th></tr>
+        </thead>
+        <tbody>
+          {configCases.map((c) => (
+            <tr>
+              <td set:html={c.caso} />
+              <td><code>{c.config}</code></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </section>
 
     <!-- BOUNDARY -->
