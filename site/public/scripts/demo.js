@@ -273,6 +273,9 @@ function wireUI() {
       if (ui) ui.copyText(els.output.textContent || '');
     });
   }
+  // Si hay proxy disponible, el nivel BOE por defecto trae el artículo completo
+  // para que el texto del articulado se muestre sin cambiar de nivel a mano.
+  if (BOE_PROXY && els.boeMode) els.boeMode.value = 'full';
 }
 
 async function boot() {
