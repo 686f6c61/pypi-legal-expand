@@ -1,0 +1,65 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'legal-expand · Expansión de siglas jurídicas españolas',
+  description = 'Expande, audita y enlaza siglas jurídicas españolas. 646 siglas verificadas de RAE, BOE y DPEJ. Pruébalo en el navegador: el paquete real corre con Pyodide.',
+} = Astro.props;
+
+const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="author" content="686f6c61" />
+    <meta name="theme-color" content="#f1f0ea" />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:site_name" content="legal-expand" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>{title}</title>
+
+    <script type="application/ld+json" set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareSourceCode',
+      name: 'legal-expand',
+      description,
+      codeRepository: 'https://github.com/686f6c61/pypi-legal-expand',
+      downloadUrl: 'https://pypi.org/project/legal-expand/',
+      programmingLanguage: 'Python',
+      runtimePlatform: 'Python 3.9+',
+      license: 'https://opensource.org/licenses/MIT',
+      author: { '@type': 'Person', name: '686f6c61', url: 'https://github.com/686f6c61' },
+    })} />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+    <slot />
+    <div class="copy-toast" id="copy-toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

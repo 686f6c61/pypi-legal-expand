@@ -1,0 +1,323 @@
+---
+import Base from '../layouts/Base.astro';
+import edgeCases from '../data/edgecases.json';
+
+const version = '1.5.2';
+
+const features = [
+  { i: '01', accent: 'accent-forest', title: 'Expansión inteligente', body: '646 siglas verificadas de RAE, BOE y DPEJ. Detecta variantes con puntos, respeta mayúsculas y resuelve duplicados.' },
+  { i: '02', accent: 'accent-terracotta', title: 'Auditoría documental', body: 'Detecta siglas conocidas y desconocidas, cuenta apariciones y genera un informe con glosario y trazabilidad.' },
+  { i: '03', accent: 'accent-soft', title: 'Referencias BOE', body: 'Reconoce normas y unidades (artículos, disposiciones, anexos), enlaza a la legislación consolidada y marca la ambigüedad.' },
+  { i: '04', accent: 'accent-sky', title: 'Tres formatos', body: 'Texto plano, HTML semántico con <abbr> y salida estructurada JSON con estadísticas de procesamiento.' },
+  { i: '05', accent: 'accent-ink', title: 'Diccionarios propios', body: 'Amplía el diccionario base con tus siglas en JSON o CSV, con prioridades y palabras de contexto.' },
+  { i: '06', accent: 'accent-sand', title: 'CLI y lotes', body: 'Interfaz de línea de comandos para expandir, auditar, exportar glosarios y procesar carpetas enteras.' },
+];
+
+const codeSamples = {
+  sdk: {
+    file: 'app.py',
+    code: `from legal_expand import expandir_siglas, ExpansionOptions
+
+texto = "La AEAT gestiona el IVA según el art. 24 de la CE."
+
+# Texto plano
+print(expandir_siglas(texto))
+
+# HTML semántico con <abbr>
+html = expandir_siglas(texto, ExpansionOptions(format="html"))
+
+# Salida estructurada con estadísticas
+data = expandir_siglas(texto, ExpansionOptions(format="structured"))
+print(data.stats.total_expanded)`,
+  },
+  audit: {
+    file: 'auditoria.py',
+    code: `from legal_expand import auditar_texto
+
+informe = auditar_texto("La AEAT y el IRPF; también XYZ desconocida.")
+
+print(informe.stats.total_known)     # siglas reconocidas
+print(informe.stats.total_unknown)   # candidatas sin diccionario
+for entrada in informe.glossary:
+    print(entrada.acronym, entrada.expansion, entrada.count)`,
+  },
+  boe: {
+    file: 'boe.py',
+    code: `from legal_expand import enriquecer_boe
+from legal_expand.types import BOEOptions
+
+texto = "El art. 14 de la Ley 39/2015 regula la relación electrónica."
+
+# Detección offline (sin red): normas, unidades y enlaces oficiales
+informe = enriquecer_boe(texto, BOEOptions(mode="offline"))
+
+# Online: trae el texto real del artículo desde el BOE
+online = enriquecer_boe(texto, BOEOptions(mode="online"))
+for ref in online.references:
+    print(ref.status, ref.norm and ref.norm.url)`,
+  },
+  cli: {
+    file: 'terminal',
+    code: `# Expandir un archivo o stdin
+echo "La AEAT y el CP" | legal-expand expand -
+
+# Auditar y exportar glosario
+legal-expand audit informe.txt --report-format markdown
+legal-expand glossary informe.txt --glossary-format csv
+
+# Referencias BOE con texto de artículos
+legal-expand boe demanda.txt --mode online --report-format markdown
+
+# Procesar una carpeta entera
+legal-expand batch ./entrada ./salida`,
+  },
+};
+---
+
+<Base>
+  <header class="site-header">
+    <a class="brand" href="#top"><span>legal-expand</span><mark>{version}</mark></a>
+    <nav class="site-nav" aria-label="Navegación principal">
+      <a href="#demo">Demo</a>
+      <a href="#edge">Casos límite</a>
+      <a href="#features">Capacidades</a>
+      <a href="#boe">BOE</a>
+      <a href="#api">API</a>
+    </nav>
+    <a class="header-link" href="https://github.com/686f6c61/pypi-legal-expand">GitHub</a>
+  </header>
+
+  <main id="main">
+    <!-- HERO -->
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero-copy page-shell">
+        <p class="eyebrow">Python · siglas jurídicas · 646 verificadas</p>
+        <h1 id="hero-title">Las siglas del derecho español,<br /><mark>expandidas y auditadas.</mark></h1>
+        <p class="hero-lede">
+          legal-expand detecta siglas legales, las expande con su significado oficial, audita documentos y
+          enlaza referencias del BOE. Sin dependencias, con CLI y tres formatos de salida.
+        </p>
+        <div class="install-line" role="group" aria-label="Comando de instalación">
+          <code>pip install legal-expand</code>
+          <button class="copy-command" type="button" data-copy="pip install legal-expand">Copiar</button>
+        </div>
+        <div class="hero-badges">
+          <span>MIT</span>
+          <span>Python 3.9+</span>
+          <span>0 dependencias</span>
+          <span>646 siglas</span>
+          <span>RAE · BOE · DPEJ</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- DEMO -->
+    <section class="demo-section page-shell" id="demo" aria-labelledby="demo-title">
+      <div class="section-heading">
+        <p class="eyebrow">Demo en vivo · Pyodide</p>
+        <h2 id="demo-title">Pruébalo aquí. Es el paquete real.</h2>
+        <p>El paquete de Python corre en tu navegador con Pyodide. Lo que ves es exactamente lo que devuelve <code>legal-expand</code>, edge cases incluidos.</p>
+      </div>
+
+      <div class="demo-shell" id="demo-shell">
+        <div class="demo-toolbar">
+          <div class="demo-tabs" role="tablist" aria-label="Modo de la demo">
+            <button role="tab" id="tab-expand" aria-selected="true" data-mode="expand">Expandir</button>
+            <button role="tab" id="tab-audit" aria-selected="false" data-mode="audit">Auditar</button>
+            <button role="tab" id="tab-glossary" aria-selected="false" data-mode="glossary">Glosario</button>
+            <button role="tab" id="tab-boe" aria-selected="false" data-mode="boe">BOE</button>
+          </div>
+          <span class="runtime-pill"><span class="runtime-dot is-loading" id="runtime-dot"></span><span id="runtime-status">Cargando Python…</span></span>
+        </div>
+
+        <div class="demo-body">
+          <div class="demo-input">
+            <label class="demo-label" for="demo-text">Texto de entrada</label>
+            <textarea id="demo-text" class="demo-textarea" spellcheck="false">La AEAT gestiona el IVA y el IRPF según el art. 24 de la Constitución y la Ley 39/2015.</textarea>
+
+            <div class="demo-controls" id="demo-controls">
+              <div class="control-group" data-control="format">
+                <label class="demo-label" for="demo-format">Formato</label>
+                <select id="demo-format">
+                  <option value="plain">Texto plano</option>
+                  <option value="html">HTML</option>
+                  <option value="structured">Estructurado (JSON)</option>
+                </select>
+              </div>
+              <div class="control-group" data-control="boe-mode" hidden>
+                <label class="demo-label" for="demo-boe-mode">Modo BOE</label>
+                <select id="demo-boe-mode">
+                  <option value="offline">Offline (detección)</option>
+                  <option value="online">Online (traer artículos)</option>
+                </select>
+              </div>
+              <label class="control-check"><input type="checkbox" id="demo-first" /> Solo primera aparición</label>
+            </div>
+
+            <div class="demo-actions">
+              <button class="run-button" id="demo-run" disabled>Ejecutar</button>
+              <button class="ghost-button" id="demo-copy-out" type="button">Copiar salida</button>
+            </div>
+
+            <div class="example-chips" id="demo-examples" aria-label="Ejemplos rápidos">
+              <button data-example="La AEAT gestiona el IVA y el IRPF según el art. 24 de la Constitución y la Ley 39/2015.">Texto base</button>
+              <button data-example="El CE regula derechos; la CEE fue precursora de la UE.">Siglas solapadas</button>
+              <button data-example="La palabra ACTIVA contiene IVA pero no debe expandirse.">Límite de palabra</button>
+              <button data-example="Visita https://sede.AEAT.gob.es y escribe a x.AEAT@correo.es">Contexto protegido</button>
+              <button data-example="&lt;b&gt;Aviso&lt;/b&gt; de la AEAT">HTML seguro</button>
+              <button data-example="Según el art. 6 del RGPD y el art. 14 de la Ley 39/2015.">Referencias BOE</button>
+            </div>
+          </div>
+
+          <div class="demo-output">
+            <div class="render-toggle" id="render-toggle" hidden>
+              <button data-render="code" aria-selected="true">Código</button>
+              <button data-render="preview" aria-selected="false">Vista</button>
+            </div>
+            <div class="output-surface" id="demo-output"><span class="placeholder">La salida aparecerá aquí en cuanto termine de cargar Python…</span></div>
+            <div class="output-meta" id="demo-meta"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EDGE CASES -->
+    <section class="edge-section page-shell band-line" id="edge" aria-labelledby="edge-title">
+      <div class="section-heading">
+        <p class="eyebrow">Casos límite reales</p>
+        <h2 id="edge-title">Los detalles que separan una demo de una librería.</h2>
+        <p>Cada entrada y salida de abajo se generó con el paquete real. Son los casos donde un enfoque ingenuo falla.</p>
+      </div>
+
+      <div class="edge-grid">
+        {edgeCases.map((c) => (
+          <article class="edge-card">
+            <h3>{c.title} <span class="edge-tag">{c.tag}</span></h3>
+            <div class="edge-io">
+              <div class="io-in"><span class="io-label">entrada</span><br />{c.input}</div>
+              <div class="io-out"><span class="io-label">salida</span><br />{c.output}</div>
+            </div>
+            <p class="edge-note">{c.note}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="features-section page-shell band-line" id="features" aria-labelledby="features-title">
+      <div class="section-heading">
+        <p class="eyebrow">Capacidades</p>
+        <h2 id="features-title">Todo lo que hace con tus documentos.</h2>
+      </div>
+      <div class="feature-grid">
+        {features.map((f) => (
+          <article class={`feature-card ${f.accent}`}>
+            <span class="feature-index">{f.i}</span>
+            <h3>{f.title}</h3>
+            <p set:html={f.body} />
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <!-- BOE -->
+    <section class="boe-section" id="boe" aria-labelledby="boe-title">
+      <div class="page-shell section-heading">
+        <p class="eyebrow">Legislación consolidada</p>
+        <h2 id="boe-title">Del texto a la norma. Con el BOE detrás.</h2>
+        <p>Detecta referencias legales, las resuelve contra la legislación consolidada y, en modo online, trae el texto real del artículo citado.</p>
+      </div>
+      <div class="page-shell boe-steps">
+        <div class="boe-step"><span>01</span><strong>Detectar</strong><small>artículos, disposiciones, anexos y BOE-A directos</small></div>
+        <div class="boe-step"><span>02</span><strong>Resolver</strong><small>alias curados y búsqueda en la API del BOE</small></div>
+        <div class="boe-step"><span>03</span><strong>Traer</strong><small>texto del artículo desde la legislación consolidada</small></div>
+        <div class="boe-step"><span>04</span><strong>Avisar</strong><small>ambigüedad marcada; nada se inventa</small></div>
+      </div>
+    </section>
+
+    <!-- API -->
+    <section class="api-section page-shell band-line" id="api" aria-labelledby="api-title">
+      <div class="api-layout">
+        <div class="section-heading" style="padding-top:56px">
+          <p class="eyebrow">Superficie de integración</p>
+          <h2 id="api-title">Una librería.<br />Cuatro formas de usarla.</h2>
+          <ul class="api-contracts">
+            <li><span class="contract-label">SDK</span><span class="contract-copy"><code>expandir_siglas</code>, <code>auditar_texto</code>, <code>enriquecer_boe</code>.</span></li>
+            <li><span class="contract-label">Formatos</span><span class="contract-copy">Texto, HTML con <code>&lt;abbr&gt;</code> y JSON estructurado.</span></li>
+            <li><span class="contract-label">CLI</span><span class="contract-copy">expand, audit, glossary, boe, batch, info.</span></li>
+            <li><span class="contract-label">Datos</span><span class="contract-copy">Diccionarios propios en JSON o CSV.</span></li>
+          </ul>
+        </div>
+
+        <div class="code-workbench">
+          <div class="code-tabs" role="tablist" aria-label="Ejemplos de integración">
+            <button role="tab" data-code="sdk" aria-selected="true">SDK</button>
+            <button role="tab" data-code="audit" aria-selected="false">Auditoría</button>
+            <button role="tab" data-code="boe" aria-selected="false">BOE</button>
+            <button role="tab" data-code="cli" aria-selected="false">CLI</button>
+          </div>
+          <div class="code-toolbar">
+            <span id="code-filename">{codeSamples.sdk.file}</span>
+            <button class="copy-command" id="copy-code" type="button">Copiar</button>
+          </div>
+          <pre><code id="code-sample">{codeSamples.sdk.code}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- BOUNDARY -->
+    <section class="boundary-section page-shell band-line" aria-labelledby="boundary-title">
+      <div class="section-heading">
+        <p class="eyebrow">Qué corre dónde</p>
+        <h2 id="boundary-title">En el navegador y en tu máquina.</h2>
+      </div>
+      <table class="boundary-table">
+        <caption class="visually-hidden">Estado de capacidades en la demo web</caption>
+        <thead>
+          <tr><th scope="col">Función</th><th scope="col">En esta demo</th><th scope="col">Detalle</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Expandir · auditar · glosario</th><td><span class="state live">En vivo</span></td><td>El paquete real corre en el navegador con Pyodide; resultados idénticos al de tu máquina.</td></tr>
+          <tr><th scope="row">Detección de referencias BOE</th><td><span class="state live">En vivo</span></td><td>Normas, unidades, ambigüedad y enlaces oficiales, sin red.</td></tr>
+          <tr><th scope="row">Traer texto de artículos BOE</th><td><span class="state partial">Vía proxy</span></td><td>Requiere un pequeño proxy que sortee CORS; en tu máquina funciona directo con <code>--mode online</code>.</td></tr>
+          <tr><th scope="row">Procesamiento por lotes</th><td><span class="state offline">Local</span></td><td>El comando <code>batch</code> recorre carpetas de tu sistema de archivos.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- CTA -->
+    <section class="final-cta" aria-labelledby="cta-title">
+      <div class="page-shell">
+        <p class="eyebrow">legal-expand {version}</p>
+        <h2 id="cta-title">Tu documento entra.<br /><mark>Las siglas salen claras.</mark></h2>
+        <div class="cta-actions">
+          <a class="primary-action" href="https://pypi.org/project/legal-expand/">Instalar desde PyPI</a>
+          <a class="secondary-action" href="https://github.com/686f6c61/pypi-legal-expand">Ver el código</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="page-shell">
+      <strong>legal-expand</strong>
+      <div class="footer-meta">
+        <p>Expansión de siglas jurídicas españolas · MIT</p>
+        <p>Creado por <a href="https://github.com/686f6c61">686f6c61</a></p>
+      </div>
+      <nav aria-label="Enlaces del pie">
+        <a href="https://github.com/686f6c61/pypi-legal-expand">GitHub</a>
+        <a href="https://pypi.org/project/legal-expand/">PyPI</a>
+        <a href="https://github.com/686f6c61/pypi-legal-expand#readme">README</a>
+        <a href="https://github.com/686f6c61/pypi-legal-expand/blob/main/CHANGELOG.md">Changelog</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script define:vars={{ codeSamples }}>
+    // Datos de ejemplos de código expuestos al script de interacción.
+    window.__LEGAL_EXPAND_CODE__ = codeSamples;
+  </script>
+  <script is:inline src="/scripts/ui.js"></script>
+  <script is:inline type="module" src="/scripts/demo.js"></script>
+</Base>

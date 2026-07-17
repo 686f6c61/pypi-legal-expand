@@ -1,0 +1,58 @@
+[
+  {
+    "tag": "boundary",
+    "title": "Siglas solapadas",
+    "note": "Distingue CEE de CE por longitud descendente; no confunde una sigla contenida en otra.",
+    "input": "El CE regula derechos; la CEE fue precursora de la UE.",
+    "output": "El CE (Constitución Española) regula derechos; la CEE (Comunidad Económica Europea) fue precursora de la UE (Unión Europea)."
+  },
+  {
+    "tag": "boundary",
+    "title": "Límite de palabra",
+    "note": "No expande siglas incrustadas dentro de una palabra mayor.",
+    "input": "La palabra ACTIVA contiene IVA pero no debe expandirse; el IVA sí.",
+    "output": "La palabra ACTIVA contiene IVA (Impuesto sobre el Valor Añadido) pero no debe expandirse; el IVA (Impuesto sobre el Valor Añadido) sí."
+  },
+  {
+    "tag": "contexto",
+    "title": "Contexto protegido",
+    "note": "Ignora siglas dentro de URLs, emails y código.",
+    "input": "Escribe a soporte.AEAT@dominio.es o visita https://sede.AEAT.gob.es sin expandir.",
+    "output": "Escribe a soporte.AEAT@dominio.es o visita https://sede.AEAT.gob.es sin expandir."
+  },
+  {
+    "tag": "unicode",
+    "title": "Unicode y acentos",
+    "note": "Procesa texto con acentos, eñes y emojis sin romperse.",
+    "input": "La AEAT gestiona el IRPF en España 🇪🇸 con eñes y tildes.",
+    "output": "La AEAT (Agencia Estatal de Administración Tributaria) gestiona el IRPF (Impuesto sobre la Renta de las Personas Físicas) en España 🇪🇸 con eñes y tildes."
+  },
+  {
+    "tag": "variantes",
+    "title": "Variantes con puntos",
+    "note": "Detecta la forma con puntos A.E.A.T. como equivalente a AEAT.",
+    "input": "Documento sellado por la A.E.A.T. competente.",
+    "output": "Documento sellado por la A.E.A.T. (Agencia Estatal de Administración Tributaria) competente."
+  },
+  {
+    "tag": "opciones",
+    "title": "Solo primera aparición",
+    "note": "Con expand_only_first solo se expande la primera ocurrencia de cada sigla.",
+    "input": "La AEAT notifica. Luego la AEAT cobra.",
+    "output": "La AEAT (Agencia Estatal de Administración Tributaria) notifica. Luego la AEAT cobra."
+  },
+  {
+    "tag": "seguridad",
+    "title": "Salida HTML segura",
+    "note": "El texto circundante se escapa: el marcado no confiable no se ejecuta.",
+    "input": "<b>Aviso</b> de la AEAT",
+    "output": "&lt;b&gt;Aviso&lt;/b&gt; de la <abbr title=\"Agencia Estatal de Administración Tributaria\">AEAT</abbr> (Agencia Estatal de Administración Tributaria)"
+  },
+  {
+    "tag": "boe",
+    "title": "Referencias BOE",
+    "note": "Detecta normas y unidades, marca ambigüedad y separa lo no soportado (UE/RGPD).",
+    "input": "Según el art. 24 de la Constitución y el art. 6 del RGPD; véase la Ley 2/2023.",
+    "output": "resolved-url-only: art. 24 de la Constitución -> https://www.boe.es/buscar/act.php?id=BOE-A-1978-31229\nunsupported: art. 6 del RGPD\nambiguous: Ley 2/2023"
+  }
+]
