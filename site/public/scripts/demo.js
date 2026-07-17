@@ -29,10 +29,12 @@ let lastHtml = null; // salida HTML pendiente de togglear entre código/vista
 
 const PY_HELPERS = `
 import json
+import html as _html
 from legal_expand import (
-    expandir_siglas, auditar_texto, exportar_glosario,
-    enriquecer_boe, boe_report_to_markdown, ExpansionOptions,
+    expandir_siglas, auditar_texto,
+    enriquecer_boe, boe_report_to_html, ExpansionOptions,
 )
+from legal_expand.core.engine import generar_glosario
 from legal_expand.types import BOEOptions
 
 def _opts(fmt, only_first):
@@ -55,49 +57,45 @@ def le_expand(text, fmt, only_first):
         },
     }, ensure_ascii=False)
 
+def _table(headers, rows_html):
+    head = "".join(f"<th>{_html.escape(h)}</th>" for h in headers)
+    return f"<table><thead><tr>{head}</tr></thead><tbody>{rows_html}</tbody></table>"
+
 def le_audit(text, only_first):
     report = auditar_texto(text, _opts('plain', only_first))
-    lines = [
-        f"Detectadas: {report.stats.total_detected}",
-        f"Conocidas: {report.stats.total_known}",
-        f"Desconocidas: {report.stats.total_unknown}",
-        f"Repetidas: {report.stats.total_repeated}",
-        "",
-        "GLOSARIO",
-    ]
-    for e in report.glossary:
-        lines.append(f"  {e.acronym} = {e.expansion}  (x{e.count})")
+    rows = "".join(
+        f"<tr><td>{_html.escape(e.acronym)}</td><td>{_html.escape(e.expansion)}</td><td>{e.count}</td></tr>"
+        for e in report.glossary
+    ) or '<tr><td colspan="3">Sin siglas conocidas</td></tr>'
+    unknown = ""
     if report.unknown_acronyms:
-        lines.append("")
-        lines.append("DESCONOCIDAS")
-        for u in report.unknown_acronyms:
-            lines.append(f"  {u.acronym}")
-    return json.dumps({
-        'output': "\\n".join(lines),
-        'is_html': False,
-        'meta': {
-            'detectadas': report.stats.total_detected,
-            'conocidas': report.stats.total_known,
-            'desconocidas': report.stats.total_unknown,
-        },
-    }, ensure_ascii=False)
+        chips = " ".join(f"<span class='chip'>{_html.escape(u.acronym)}</span>" for u in report.unknown_acronyms)
+        unknown = f"<h4>Desconocidas</h4><div class='chips'>{chips}</div>"
+    out = "<div class='report'><h4>Glosario</h4>" + _table(['Sigla', 'Significado', 'Apariciones'], rows) + unknown + "</div>"
+    return json.dumps({'output': out, 'render_html': True, 'meta': {
+        'detectadas': report.stats.total_detected,
+        'conocidas': report.stats.total_known,
+        'desconocidas': report.stats.total_unknown,
+    }}, ensure_ascii=False)
 
 def le_glossary(text):
-    output = exportar_glosario(text, 'markdown')
-    return json.dumps({'output': output or '(sin siglas conocidas)', 'is_html': False, 'meta': {}}, ensure_ascii=False)
+    glossary = generar_glosario(text)
+    if not glossary:
+        return json.dumps({'output': "<p class='muted'>Sin siglas conocidas.</p>", 'render_html': True, 'meta': {}}, ensure_ascii=False)
+    rows = "".join(
+        f"<tr><td>{_html.escape(e.acronym)}</td><td>{_html.escape(e.expansion)}</td><td>{e.count}</td></tr>"
+        for e in glossary
+    )
+    out = _table(['Sigla', 'Significado', 'Apariciones'], rows)
+    return json.dumps({'output': out, 'render_html': True, 'meta': {'siglas': len(glossary)}}, ensure_ascii=False)
 
 def le_boe_offline(text):
     report = enriquecer_boe(text, BOEOptions(mode='offline'))
-    output = boe_report_to_markdown(report)
-    return json.dumps({
-        'output': output,
-        'is_html': False,
-        'meta': {
-            'detectadas': report.stats.total_detected,
-            'resueltas': report.stats.total_resolved,
-            'ambiguas': report.stats.total_ambiguous,
-        },
-    }, ensure_ascii=False)
+    return json.dumps({'output': boe_report_to_html(report), 'render_html': True, 'meta': {
+        'detectadas': report.stats.total_detected,
+        'resueltas': report.stats.total_resolved,
+        'ambiguas': report.stats.total_ambiguous,
+    }}, ensure_ascii=False)
 
 def le_boe_online(text, proxy):
     from legal_expand.boe import BOEClient, BOENetworkError
@@ -107,7 +105,7 @@ def le_boe_online(text, proxy):
         def __init__(self, options, proxy_url):
             super().__init__(options)
             self._proxy = proxy_url
-        def _get(self, path):
+        def _get(self, path, accept=None):
             cached = self._read_cache(path)
             if cached is not None:
                 return cached
@@ -125,15 +123,10 @@ def le_boe_online(text, proxy):
     options = BOEOptions(mode='online', include_unit_text=True)
     client = ProxyBOEClient(options, proxy)
     report = enriquecer_boe(text, options, client=client)
-    output = boe_report_to_markdown(report)
-    return json.dumps({
-        'output': output,
-        'is_html': False,
-        'meta': {
-            'detectadas': report.stats.total_detected,
-            'resueltas': report.stats.total_resolved,
-        },
-    }, ensure_ascii=False)
+    return json.dumps({'output': boe_report_to_html(report), 'render_html': True, 'meta': {
+        'detectadas': report.stats.total_detected,
+        'resueltas': report.stats.total_resolved,
+    }}, ensure_ascii=False)
 `;
 
 function setStatus(state, text) {
@@ -158,14 +151,19 @@ function renderMeta(meta) {
 function showOutput(payload) {
   lastHtml = null;
   if (els.renderToggle) els.renderToggle.hidden = true;
-  if (payload.is_html) {
+  if (payload.render_html) {
+    // Informes (auditoría, glosario, BOE): HTML generado por el paquete o
+    // construido con valores escapados. Se renderiza directamente.
+    els.output.innerHTML = payload.output;
+  } else if (payload.is_html) {
+    // Expansión en formato HTML: toggle entre código escapado y vista.
     lastHtml = payload.output;
     if (els.renderToggle) {
       els.renderToggle.hidden = false;
       els.renderToggle.querySelectorAll('button').forEach((b) =>
         b.setAttribute('aria-selected', String(b.dataset.render === 'code')));
     }
-    els.output.textContent = payload.output; // por defecto, código escapado
+    els.output.textContent = payload.output;
   } else {
     els.output.textContent = payload.output;
   }
@@ -193,11 +191,11 @@ async function runDemo() {
     } else if (mode === 'boe') {
       if (els.boeMode.value === 'online') {
         if (!BOE_PROXY) {
-          els.output.textContent =
-            'El modo online requiere un proxy para traer artículos del BOE (CORS).\n' +
-            'Configura window.__BOE_PROXY__ en el hosting. Mostrando detección offline:\n\n' +
-            JSON.parse(pyodide.runPython('le_boe_offline(demo_text)')).output;
-          renderMeta({});
+          const off = JSON.parse(pyodide.runPython('le_boe_offline(demo_text)'));
+          els.output.innerHTML =
+            '<p class="notice">El modo online necesita un proxy para traer los artículos del BOE (el navegador bloquea la petición directa por CORS). Mostrando la detección offline.</p>' +
+            off.output;
+          renderMeta(off.meta);
           els.run.disabled = false;
           return;
         }
@@ -223,6 +221,9 @@ function switchMode(next) {
   if (els.formatGroup) els.formatGroup.hidden = next !== 'expand';
   if (els.boeGroup) els.boeGroup.hidden = next !== 'boe';
   if (els.renderToggle) els.renderToggle.hidden = true;
+  // El informe BOE es una tabla ancha: la salida ocupa todo el ancho.
+  const body = document.querySelector('.demo-body');
+  if (body) body.classList.toggle('is-wide', next === 'boe');
 }
 
 function wireUI() {

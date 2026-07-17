@@ -32,11 +32,12 @@ export default {
     }
 
     const target = BOE_ORIGIN + url.pathname + url.search;
+    // El endpoint de bloque del BOE solo acepta XML; el resto sirve JSON.
+    const accept = url.pathname.includes('/texto/bloque/')
+      ? 'application/xml'
+      : 'application/json, application/xml;q=0.9, */*;q=0.1';
     const upstream = await fetch(target, {
-      headers: {
-        Accept: 'application/json, application/xml;q=0.9, */*;q=0.1',
-        'User-Agent': 'legal-expand-boe-proxy',
-      },
+      headers: { Accept: accept, 'User-Agent': 'legal-expand-boe-proxy' },
     });
 
     const body = await upstream.arrayBuffer();

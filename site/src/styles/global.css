@@ -407,6 +407,12 @@ section {
   .demo-body { grid-template-columns: 1fr; }
 }
 
+.demo-body.is-wide { grid-template-columns: 1fr; }
+.demo-body.is-wide .demo-input {
+  border-right: none;
+  border-bottom: 1px solid var(--line);
+}
+
 .demo-input,
 .demo-output {
   padding: 18px;
@@ -557,6 +563,66 @@ section {
 .output-surface .placeholder { color: var(--muted); }
 .output-surface abbr { text-decoration-color: var(--forest); }
 
+/* Informes renderizados como HTML dentro de la salida de la demo */
+.output-surface .report h4,
+.output-surface h1,
+.output-surface h2 {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  margin: 4px 0 8px;
+}
+.output-surface h1 { font-size: 1.05rem; }
+.output-surface dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+.output-surface dt { color: var(--muted); }
+.output-surface dd { margin: 0 8px 0 2px; font-weight: 600; color: var(--forest); }
+.output-surface table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 6px 0 14px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+}
+.output-surface th,
+.output-surface td {
+  text-align: left;
+  padding: 6px 8px;
+  border: 1px solid var(--soft-line);
+  vertical-align: top;
+}
+.output-surface thead th { background: var(--surface-deep); font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+.output-surface a { color: var(--forest); text-decoration: underline; text-underline-offset: 2px; word-break: break-all; }
+.output-surface details {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: var(--surface-deep);
+  border-radius: var(--radius);
+}
+.output-surface summary { cursor: pointer; font-weight: 600; font-family: var(--font-sans); }
+.output-surface details p { margin: 8px 0 0; font-family: var(--font-sans); font-size: 13px; line-height: 1.55; }
+.output-surface .notice {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--ink);
+  background: var(--sand);
+  border-radius: var(--radius);
+}
+.output-surface .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.output-surface .chip {
+  padding: 2px 8px;
+  font-size: 11px;
+  border: 1px solid var(--soft-line);
+  border-radius: 999px;
+}
+.output-surface .muted { color: var(--muted); }
+
 .output-meta {
   display: flex;
   flex-wrap: wrap;
@@ -668,24 +734,7 @@ section {
   border-radius: var(--radius);
   padding: 22px;
   background: var(--surface);
-  position: relative;
 }
-
-.feature-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: var(--accent, var(--forest));
-  border-radius: var(--radius) 0 0 var(--radius);
-}
-
-.feature-card.accent-forest { --accent: var(--forest); }
-.feature-card.accent-terracotta { --accent: var(--terracotta); }
-.feature-card.accent-sky { --accent: var(--sky); }
-.feature-card.accent-ink { --accent: var(--ink); }
-.feature-card.accent-sand { --accent: var(--sand); }
-.feature-card.accent-soft { --accent: var(--forest-soft); }
 
 .feature-card h3 { font-size: 1.1rem; margin-bottom: 8px; }
 .feature-card p { color: var(--muted); margin: 0; font-size: 0.95rem; }
