@@ -282,6 +282,26 @@ code, pre, kbd {
   transition: background 0.15s ease, color 0.15s ease;
 }
 
+.hero-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.colab-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 18px;
+  font-weight: 500;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.colab-button:hover { background: var(--forest); color: var(--surface); }
+
 .hero-badges {
   display: flex;
   flex-wrap: wrap;
@@ -514,6 +534,24 @@ section {
   background: var(--surface);
   transition: background 0.15s ease, color 0.15s ease;
 }
+
+.example-docs { margin-top: 18px; }
+.doc-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.doc-buttons button {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.doc-buttons button:hover { background: var(--forest); color: var(--surface); }
 
 .example-chips {
   display: flex;

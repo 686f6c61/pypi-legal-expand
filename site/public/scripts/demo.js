@@ -89,44 +89,31 @@ def le_glossary(text):
     out = _table(['Sigla', 'Significado', 'Apariciones'], rows)
     return json.dumps({'output': out, 'render_html': True, 'meta': {'siglas': len(glossary)}}, ensure_ascii=False)
 
-def le_boe_offline(text):
-    report = enriquecer_boe(text, BOEOptions(mode='offline'))
+def _boe_payload(report):
     return json.dumps({'output': boe_report_to_html(report), 'render_html': True, 'meta': {
         'detectadas': report.stats.total_detected,
         'resueltas': report.stats.total_resolved,
         'ambiguas': report.stats.total_ambiguous,
     }}, ensure_ascii=False)
 
-def le_boe_online(text, proxy):
-    from legal_expand.boe import BOEClient, BOENetworkError
+def le_boe_detect(text):
+    # Nivel 1: detección offline (nombre + norma + URL oficial), sin red.
+    report = enriquecer_boe(text, BOEOptions(mode='offline'))
+    return _boe_payload(report)
+
+def le_boe_online(text, proxy, full):
+    # Niveles 2 y 3: consulta al BOE mediante el transporte inyectable del
+    # paquete. full=True trae además el texto íntegro del artículo.
+    from legal_expand.boe import BOEClient
     from pyodide.http import open_url
 
-    class ProxyBOEClient(BOEClient):
-        def __init__(self, options, proxy_url):
-            super().__init__(options)
-            self._proxy = proxy_url
-        def _get(self, path, accept=None):
-            cached = self._read_cache(path)
-            if cached is not None:
-                return cached
-            if '{path}' in self._proxy:
-                url = self._proxy.replace('{path}', path)
-            else:
-                url = self._proxy + path
-            try:
-                body = open_url(url).read()
-            except Exception as exc:
-                raise BOENetworkError(str(exc)) from exc
-            self._write_cache(path, body)
-            return body
+    def transport(url, accept):
+        return open_url(url).read()
 
-    options = BOEOptions(mode='online', include_unit_text=True)
-    client = ProxyBOEClient(options, proxy)
+    options = BOEOptions(mode='online', include_unit_text=full, max_retries=0)
+    client = BOEClient(options, base_url=proxy, transport=transport)
     report = enriquecer_boe(text, options, client=client)
-    return json.dumps({'output': boe_report_to_html(report), 'render_html': True, 'meta': {
-        'detectadas': report.stats.total_detected,
-        'resueltas': report.stats.total_resolved,
-    }}, ensure_ascii=False)
+    return _boe_payload(report)
 `;
 
 function setStatus(state, text) {
@@ -189,20 +176,21 @@ async function runDemo() {
     } else if (mode === 'glossary') {
       raw = pyodide.runPython('le_glossary(demo_text)');
     } else if (mode === 'boe') {
-      if (els.boeMode.value === 'online') {
-        if (!BOE_PROXY) {
-          const off = JSON.parse(pyodide.runPython('le_boe_offline(demo_text)'));
-          els.output.innerHTML =
-            '<p class="notice">El modo online necesita un proxy para traer los artículos del BOE (el navegador bloquea la petición directa por CORS). Mostrando la detección offline.</p>' +
-            off.output;
-          renderMeta(off.meta);
-          els.run.disabled = false;
-          return;
-        }
-        pyodide.globals.set('demo_proxy', BOE_PROXY);
-        raw = await pyodide.runPythonAsync('le_boe_online(demo_text, demo_proxy)');
+      const level = els.boeMode.value; // detect | confirm | full
+      if (level === 'detect') {
+        raw = pyodide.runPython('le_boe_detect(demo_text)');
+      } else if (!BOE_PROXY) {
+        const off = JSON.parse(pyodide.runPython('le_boe_detect(demo_text)'));
+        els.output.innerHTML =
+          '<p class="notice">Este nivel consulta el BOE en vivo y necesita un proxy (el navegador bloquea la petición directa por CORS). Mostrando la detección offline.</p>' +
+          off.output;
+        renderMeta(off.meta);
+        els.run.disabled = false;
+        return;
       } else {
-        raw = pyodide.runPython('le_boe_offline(demo_text)');
+        pyodide.globals.set('demo_proxy', BOE_PROXY);
+        pyodide.globals.set('demo_full', level === 'full');
+        raw = await pyodide.runPythonAsync('le_boe_online(demo_text, demo_proxy, demo_full)');
       }
     }
     showOutput(JSON.parse(raw));
@@ -235,6 +223,15 @@ function wireUI() {
     b.addEventListener('click', () => {
       // el atributo llega ya sin escapar por el navegador
       els.text.value = b.getAttribute('data-example');
+      if (pyodide) runDemo();
+    });
+  });
+  document.querySelectorAll('#demo-docs button').forEach((b) => {
+    b.addEventListener('click', () => {
+      const list = window.__LEGAL_EXPAND_EXAMPLES__ || [];
+      const ex = list.find((e) => e.id === b.dataset.doc);
+      if (!ex) return;
+      els.text.value = ex.text;
       if (pyodide) runDemo();
     });
   });

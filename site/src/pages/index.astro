@@ -1,8 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
 import edgeCases from '../data/edgecases.json';
+import examples from '../data/examples.json';
 
 const version = '1.5.2';
+const colabUrl = 'https://colab.research.google.com/github/686f6c61/pypi-legal-expand/blob/main/legal_expand_demo.ipynb';
 
 const features = [
   { i: '01', accent: 'accent-forest', title: 'Expansión inteligente', body: '646 siglas verificadas de RAE, BOE y DPEJ. Detecta variantes con puntos, respeta mayúsculas y resuelve duplicados.' },
@@ -97,9 +99,12 @@ legal-expand batch ./entrada ./salida`,
           legal-expand detecta siglas legales, las expande con su significado oficial, audita documentos y
           enlaza referencias del BOE. Sin dependencias, con CLI y tres formatos de salida.
         </p>
-        <div class="install-line" role="group" aria-label="Comando de instalación">
-          <code>pip install legal-expand</code>
-          <button class="copy-command" type="button" data-copy="pip install legal-expand">Copiar</button>
+        <div class="hero-cta-row">
+          <div class="install-line" role="group" aria-label="Comando de instalación">
+            <code>pip install legal-expand</code>
+            <button class="copy-command" type="button" data-copy="pip install legal-expand">Copiar</button>
+          </div>
+          <a class="colab-button" href={colabUrl} target="_blank" rel="noopener">Abrir en Colab</a>
         </div>
         <div class="hero-badges">
           <span>MIT</span>
@@ -145,10 +150,11 @@ legal-expand batch ./entrada ./salida`,
                 </select>
               </div>
               <div class="control-group" data-control="boe-mode" hidden>
-                <label class="demo-label" for="demo-boe-mode">Modo BOE</label>
+                <label class="demo-label" for="demo-boe-mode">Nivel BOE</label>
                 <select id="demo-boe-mode">
-                  <option value="offline">Offline (detección)</option>
-                  <option value="online">Online (traer artículos)</option>
+                  <option value="detect">Detectar y enlazar (offline)</option>
+                  <option value="confirm">Confirmar en el BOE (online)</option>
+                  <option value="full">Traer artículo completo (online)</option>
                 </select>
               </div>
               <label class="control-check"><input type="checkbox" id="demo-first" /> Solo primera aparición</label>
@@ -159,13 +165,20 @@ legal-expand batch ./entrada ./salida`,
               <button class="ghost-button" id="demo-copy-out" type="button">Copiar salida</button>
             </div>
 
-            <div class="example-chips" id="demo-examples" aria-label="Ejemplos rápidos">
-              <button data-example="La AEAT gestiona el IVA y el IRPF según el art. 24 de la Constitución y la Ley 39/2015.">Texto base</button>
+            <div class="example-docs">
+              <span class="demo-label">Documentos de ejemplo</span>
+              <div class="doc-buttons" id="demo-docs">
+                {examples.map((ex) => (
+                  <button type="button" data-doc={ex.id}>{ex.label}</button>
+                ))}
+              </div>
+            </div>
+
+            <div class="example-chips" id="demo-examples" aria-label="Fragmentos rápidos">
               <button data-example="El CE regula derechos; la CEE fue precursora de la UE.">Siglas solapadas</button>
               <button data-example="La palabra ACTIVA contiene IVA pero no debe expandirse.">Límite de palabra</button>
               <button data-example="Visita https://sede.AEAT.gob.es y escribe a x.AEAT@correo.es">Contexto protegido</button>
               <button data-example="&lt;b&gt;Aviso&lt;/b&gt; de la AEAT">HTML seguro</button>
-              <button data-example="Según el art. 6 del RGPD y el art. 14 de la Ley 39/2015.">Referencias BOE</button>
             </div>
           </div>
 
@@ -314,9 +327,10 @@ legal-expand batch ./entrada ./salida`,
     </div>
   </footer>
 
-  <script define:vars={{ codeSamples }}>
-    // Datos de ejemplos de código expuestos al script de interacción.
+  <script define:vars={{ codeSamples, examples }}>
+    // Datos expuestos al script de interacción.
     window.__LEGAL_EXPAND_CODE__ = codeSamples;
+    window.__LEGAL_EXPAND_EXAMPLES__ = examples;
   </script>
   <script is:inline src="/scripts/ui.js"></script>
   <script is:inline type="module" src="/scripts/demo.js"></script>
