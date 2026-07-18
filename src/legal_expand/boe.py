@@ -14,12 +14,14 @@ import re
 import time
 import urllib.parse
 import urllib.request
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # nosec B405 - DOCTYPE/ENTITY rechazados en _xml_fromstring
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Optional
 
+from .boe_catalog import resolve_norm_from_catalog
 from .core.normalizer import is_in_special_context
+from .eurlex import resolve_eu_norm
 from .types import (
     BOEEnrichmentOutput,
     BOEEnrichmentStats,
@@ -36,7 +38,12 @@ from .types import (
 
 
 BOE_BASE_URL = 'https://www.boe.es'
+EURLEX_BASE_URL = 'https://eur-lex.europa.eu'
 BOE_CONSOLIDATED_API = '/datosabiertos/api/legislacion-consolidada'
+# El índice y la búsqueda sirven JSON. El endpoint de bloque del BOE solo
+# soporta XML y responde 400 ante un Accept con JSON, así que se pide aparte.
+_ACCEPT_JSON = 'application/json, application/xml;q=0.9, */*;q=0.1'
+_ACCEPT_XML = 'application/xml'
 BOE_INFORMATION_WARNING = (
     'Los textos consolidados del BOE tienen carácter meramente informativo; '
     'verifica siempre la versión oficial antes de usar una referencia en un acto jurídico.'
@@ -44,6 +51,7 @@ BOE_INFORMATION_WARNING = (
 _STATUS_EXPLANATIONS = {
     'resolved': 'Norma y unidad concreta localizadas en el índice de legislación consolidada del BOE.',
     'resolved-url-only': 'La norma completa se identificó con seguridad y se enlaza a su página consolidada.',
+    'resolved-eurlex': 'Normativa de la UE identificada y enlazada a su página oficial en EUR-Lex (CELEX).',
     'manual': 'Referencia confirmada manualmente mediante overrides aportados por la persona revisora.',
     'needs-boe-search': 'La referencia parece BOE, pero necesita consulta a la API para confirmar la norma.',
     'ambiguous': 'Hay demasiada duda para elegir una norma BOE sin intervención humana.',
@@ -67,11 +75,12 @@ _REASON_EXPLANATIONS = {
 }
 _STATUS_ACTIONS = {
     'resolved': 'Verifica la URL oficial antes de usarla en un documento final.',
+    'resolved-eurlex': 'Verifica la versión vigente en EUR-Lex; la UE no se publica en el BOE consolidado.',
     'manual': 'Mantén el override junto al expediente para trazabilidad.',
     'needs-boe-search': 'Reejecuta con --mode cache-first u online, o confirma la norma con un override.',
     'ambiguous': 'Completa fecha, título o BOE-A en un override manual.',
     'not-found': 'Añade la norma citada o confirma manualmente si la referencia es correcta.',
-    'unsupported': 'Revísala con una fuente distinta de BOE; no se resolverá automáticamente aquí.',
+    'unsupported': 'Normativa de la UE: no está en la legislación consolidada del BOE. Consúltala en EUR-Lex (https://eur-lex.europa.eu).',
     'network-error': 'Reintenta con caché, más timeout o revisión manual.',
 }
 
@@ -118,7 +127,12 @@ _SHORT_ALIAS = r'(?:LPACAP|LRJSP|LOPDGDD|LECrim|LEC|LCSP|TREBEP|EBEP|ENS|CC|CP|C
 _NORM_TOKEN = rf'(?:{_NUMBERED_NORM}|{_FULL_ALIAS}|{_SHORT_ALIAS})'
 _NORM_ONLY_TOKEN = rf'(?:{_NUMBERED_NORM}|{_FULL_ALIAS})'
 _EU_ALIAS = r'(?:RGPD|GDPR|Reglamento\s+General\s+de\s+Protecci[óo]n\s+de\s+Datos)'
-_EU_NORM = rf'(?:Reglamento\s*\((?:UE|CE)\)\s+\d{{3,4}}/\d{{3,4}}|{_EU_ALIAS})'
+# Reglamentos, Directivas y Decisiones de la UE (con número/año y sufijo de
+# tratado opcional). El identificador CELEX se construye en el módulo eurlex.
+_EU_REGLAMENTO = r'Reglamento\s*\((?:UE|CE)\)\s+\d{3,4}/\d{3,4}'
+_EU_DIRECTIVA = r'Directiva\s+(?:\((?:UE|CE)\)\s+)?\d{1,4}/\d{1,4}(?:/(?:UE|CE|CEE))?'
+_EU_DECISION = r'Decisi[óo]n\s+(?:\((?:UE|PESC|CE)\)\s+)?\d{1,4}/\d{1,4}(?:/(?:UE|CE|PESC))?'
+_EU_NORM = rf'(?:{_EU_REGLAMENTO}|{_EU_DIRECTIVA}|{_EU_DECISION}|{_EU_ALIAS})'
 _CONNECTOR = r'(?:(?:de\s+la|de\s+el|del|de|en|seg[uú]n)\s+)?'
 
 _DIRECT_BOE_RE = re.compile(r'\bBOE-[A-Z]-\d{4}-\d{1,6}\b')
@@ -223,20 +237,36 @@ class BOENetworkError(RuntimeError):
     """Error estable para fallos de red BOE."""
 
 
+#: Transporte HTTP: recibe (url, accept) y devuelve el cuerpo como texto.
+BOETransport = Callable[[str, str], str]
+
+
 class BOEClient:
     """
     Cliente mínimo de la API de legislación consolidada del BOE.
+
+    Por defecto usa ``urllib`` contra ``https://www.boe.es``. Para entornos sin
+    sockets (navegador con Pyodide) o detrás de un proxy, se puede inyectar un
+    ``transport`` propio: una función ``(url, accept) -> body`` que realiza la
+    petición. En ese caso se admite un ``base_url`` distinto (el del proxy).
 
     Las pruebas unitarias no dependen de red: pueden inyectar un cliente falso
     con los mismos métodos públicos.
     """
 
-    def __init__(self, options: Optional[BOEOptions] = None, base_url: str = BOE_BASE_URL):
+    def __init__(
+        self,
+        options: Optional[BOEOptions] = None,
+        base_url: str = BOE_BASE_URL,
+        transport: Optional[BOETransport] = None,
+    ):
         self.options = options or BOEOptions()
         self.base_url = base_url.rstrip('/')
-        parsed_base = urllib.parse.urlparse(self.base_url)
-        if parsed_base.scheme != 'https' or parsed_base.netloc != 'www.boe.es':
-            raise ValueError('BOEClient only allows https://www.boe.es as base_url')
+        self._transport = transport
+        if transport is None:
+            parsed_base = urllib.parse.urlparse(self.base_url)
+            if parsed_base.scheme != 'https' or parsed_base.netloc != 'www.boe.es':
+                raise ValueError('BOEClient only allows https://www.boe.es as base_url')
 
     def _cache_dir(self) -> Path:
         if self.options.cache_path:
@@ -252,9 +282,9 @@ class BOEClient:
             return None
         try:
             data = json.loads(cache_file.read_text(encoding='utf-8'))
-        except (OSError, json.JSONDecodeError):
+            timestamp = float(data.get('timestamp', 0))
+        except (OSError, json.JSONDecodeError, ValueError, TypeError, AttributeError):
             return None
-        timestamp = float(data.get('timestamp', 0))
         if time.time() - timestamp > self.options.cache_ttl_days * 86400:
             return None
         body = data.get('body')
@@ -269,7 +299,7 @@ class BOEClient:
             encoding='utf-8',
         )
 
-    def _get(self, path: str) -> str:
+    def _get(self, path: str, accept: str = _ACCEPT_JSON) -> str:
         cached = self._read_cache(path)
         if cached is not None:
             return cached
@@ -277,25 +307,77 @@ class BOEClient:
             raise BOENetworkError('boe-offline-mode')
 
         url = self.base_url + path
+        if self._transport is not None:
+            body = self._fetch_via_transport(url, accept)
+        else:
+            request = urllib.request.Request(
+                url,
+                headers={
+                    'Accept': accept,
+                    'User-Agent': 'legal-expand/1.5 (+https://github.com/686f6c61/pypi-legal-expand)',
+                },
+            )
+            body = self._fetch_with_retries(request)
+        self._write_cache(path, body)
+        return body
+
+    def _fetch_via_transport(self, url: str, accept: str) -> str:
+        assert self._transport is not None
+        try:
+            return self._transport(url, accept)
+        except BOENetworkError:
+            raise
+        except Exception as exc:
+            raise BOENetworkError(str(exc)) from exc
+
+    def fetch_eurlex_html(self, celex: str) -> str:
+        """
+        Descarga el documento HTML consolidado de EUR-Lex para un CELEX.
+
+        Si ``base_url`` es un proxy propio (distinto del BOE oficial), se asume
+        que enruta ``/legal-content`` a EUR-Lex y se usa ese proxy. En otro caso
+        (base_url por defecto), EUR-Lex se pide a su host oficial. Con transporte
+        inyectado se usa ese transporte; si no, urllib.
+        """
+        from .eurlex import eurlex_html_path
+
+        path = eurlex_html_path(celex)
+        # base_url solo se usa como proxy cuando no es el host oficial del BOE.
+        base = self.base_url if self.base_url != BOE_BASE_URL else EURLEX_BASE_URL
+        url = base + path
+        if self._transport is not None:
+            return self._fetch_via_transport(url, 'text/html')
         request = urllib.request.Request(
             url,
             headers={
-                'Accept': 'application/json, application/xml;q=0.9, */*;q=0.1',
-                'User-Agent': 'legal-expand/1.5 (+https://github.com/686f6c61/pypi-legal-expand)',
+                'Accept': 'text/html',
+                'User-Agent': 'legal-expand/1.6 (+https://github.com/686f6c61/pypi-legal-expand)',
             },
         )
-        try:
-            # base_url is restricted to https://www.boe.es in __init__.
-            with urllib.request.urlopen(  # nosec B310
-                request,
-                timeout=self.options.timeout_seconds,
-            ) as response:
-                body = response.read().decode('utf-8', errors='replace')
-        except Exception as exc:  # pragma: no cover - depends on network
-            raise BOENetworkError(str(exc)) from exc
+        return self._fetch_with_retries(request)  # nosec B310
 
-        self._write_cache(path, body)
-        return body
+    def _fetch_with_retries(self, request: urllib.request.Request) -> str:
+        """
+        Ejecuta la petición reintentando ante fallos transitorios de red.
+
+        Realiza hasta ``max_retries`` reintentos con backoff exponencial.
+        Tras agotarlos, propaga el último error como BOENetworkError.
+        """
+        attempts = max(1, self.options.max_retries + 1)
+        last_exc: Optional[Exception] = None
+        for attempt in range(attempts):
+            try:
+                # base_url is restricted to https://www.boe.es in __init__.
+                with urllib.request.urlopen(  # nosec B310
+                    request,
+                    timeout=self.options.timeout_seconds,
+                ) as response:
+                    return response.read().decode('utf-8', errors='replace')
+            except Exception as exc:  # pragma: no cover - depends on network
+                last_exc = exc
+                if attempt + 1 < attempts:
+                    time.sleep(self.options.retry_backoff_seconds * (2 ** attempt))
+        raise BOENetworkError(str(last_exc)) from last_exc  # pragma: no cover
 
     def search(self, query: str) -> list[BOENorm]:
         params = urllib.parse.urlencode({
@@ -325,7 +407,8 @@ class BOEClient:
     def get_block_text(self, boe_id: str, block_id: str) -> str:
         body = self._get(
             f'{BOE_CONSOLIDATED_API}/id/{urllib.parse.quote(boe_id)}/texto/bloque/'
-            f'{urllib.parse.quote(block_id)}'
+            f'{urllib.parse.quote(block_id)}',
+            accept=_ACCEPT_XML,
         )
         return _plain_text(body)
 
@@ -464,14 +547,25 @@ def _plain_text(body: str) -> str:
         root = _xml_fromstring(body)
     except ET.ParseError:
         return re.sub(r'\s+', ' ', body).strip()
-    return re.sub(r'\s+', ' ', ''.join(root.itertext())).strip()
+    # La API del BOE envuelve el contenido en <response><status/><data>…</data>.
+    # Se extrae solo <data> para no arrastrar el "200 ok" del estado.
+    data_node = root.find('data')
+    source = data_node if data_node is not None else root
+    # Un bloque modificado trae varias <version> (redacciones sucesivas). Se usa
+    # solo la última (la vigente) para no duplicar el texto del artículo.
+    versions = source.findall('.//version')
+    if versions:
+        source = versions[-1]
+    return re.sub(r'\s+', ' ', ''.join(source.itertext())).strip()
 
 
 def _xml_fromstring(body: str) -> ET.Element:
-    lowered = body[:1000].lower()
+    # Se rechaza cualquier declaración DTD/entidad en todo el documento (no solo
+    # al principio) para no depender de la posición. ElementTree (expat) tampoco
+    # resuelve entidades externas por defecto, así que es defensa en profundidad.
+    lowered = body.lower()
     if '<!doctype' in lowered or '<!entity' in lowered:
         raise ET.ParseError('unsafe XML declaration rejected')
-    # DTD/entity declarations are rejected before parsing.
     return ET.fromstring(body)  # nosec B314
 
 
@@ -555,9 +649,15 @@ def _resolve_alias(norm_text: str, options: BOEOptions, overrides: dict[str, Any
     manual = _manual_alias(norm_text, overrides)
     if manual is not None:
         return manual
-    if not options.use_curated_aliases:
-        return None
-    return _CURATED_ALIASES.get(_normalize_text(norm_text))
+    if options.use_curated_aliases:
+        curated = _CURATED_ALIASES.get(_normalize_text(norm_text))
+        if curated is not None:
+            return curated
+    # El índice del catálogo resuelve cualquier norma española por rango y número
+    # (offline). Se respeta el criterio conservador de las ambiguas conocidas.
+    if options.use_boe_index and not _is_known_ambiguous_norm(norm_text):
+        return resolve_norm_from_catalog(norm_text)
+    return None
 
 
 def _is_known_ambiguous_norm(norm_text: str) -> bool:
@@ -825,6 +925,34 @@ def _detect_multi_norm_references(text: str, add: ReferenceAdder) -> None:
         ))
 
 
+def _build_eu_reference(
+    match: re.Match[str],
+    norm_text: str,
+    unit_text: Optional[str] = None,
+) -> BOEReference:
+    """
+    Construye la referencia de una norma UE. Si se puede resolver a EUR-Lex por
+    su CELEX, queda como `resolved-eurlex` con su URL; si no, `unsupported`.
+    """
+    norm = resolve_eu_norm(norm_text)
+    if norm is not None:
+        return _reference(
+            match.group(0), match.start(), match.end(), 'eu', 'resolved-eurlex',
+            norm=norm,
+            norm_text=norm_text,
+            unit_text=unit_text,
+            confidence=1.0,
+            reason='eu-eurlex-resolved',
+        )
+    return _reference(
+        match.group(0), match.start(), match.end(), 'unsupported', 'unsupported',
+        norm_text=norm_text,
+        unit_text=unit_text,
+        confidence=1.0,
+        reason='non-boe-eu-reference',
+    )
+
+
 def _detect_unit_then_eu_references(
     text: str,
     consumed: list[tuple[int, int]],
@@ -833,13 +961,7 @@ def _detect_unit_then_eu_references(
     for match in _UNIT_THEN_EU_RE.finditer(text):
         if _overlaps(match, consumed):
             continue
-        add(_reference(
-            match.group(0), match.start(), match.end(), 'unsupported', 'unsupported',
-            norm_text=match.group('norm'),
-            unit_text=match.group('unit_text'),
-            confidence=1.0,
-            reason='non-boe-eu-reference',
-        ))
+        add(_build_eu_reference(match, match.group('norm'), match.group('unit_text')))
 
 
 def _detect_unit_then_norm_references(
@@ -862,12 +984,7 @@ def _detect_eu_only_references(
     for match in _EU_ONLY_RE.finditer(text):
         if _overlaps(match, consumed):
             continue
-        add(_reference(
-            match.group(0), match.start(), match.end(), 'unsupported', 'unsupported',
-            norm_text=match.group('norm'),
-            confidence=1.0,
-            reason='non-boe-eu-reference',
-        ))
+        add(_build_eu_reference(match, match.group('norm')))
 
 
 def _detect_norm_only_references(
@@ -971,10 +1088,13 @@ def enriquecer_boe(
     return _output(texto, enriched)
 
 
-_ENRICH_SKIP_STATUSES = {'unsupported', 'ambiguous', 'not-found'}
+_ENRICH_SKIP_STATUSES = {'unsupported', 'ambiguous', 'not-found', 'resolved-eurlex'}
 
 
 def _enrich_reference(reference: BOEReference, options: BOEOptions, client: BOEClient) -> BOEReference:
+    # La normativa UE se completa desde EUR-Lex, no desde el BOE.
+    if reference.status == 'resolved-eurlex':
+        return _enrich_eurlex_reference(reference, options, client)
     if reference.status in _ENRICH_SKIP_STATUSES:
         return reference
     if _needs_norm_lookup(reference) and not _resolve_reference_norm(reference, client):
@@ -982,6 +1102,34 @@ def _enrich_reference(reference: BOEReference, options: BOEOptions, client: BOEC
 
     if _should_fetch_unit_blocks(reference, options):
         return _enrich_unit_blocks(reference, client)
+    return reference
+
+
+def _enrich_eurlex_reference(
+    reference: BOEReference,
+    options: BOEOptions,
+    client: BOEClient,
+) -> BOEReference:
+    """Trae el texto íntegro del artículo citado desde EUR-Lex (si hay unidad)."""
+    from .eurlex import extract_article_text, unit_number
+
+    if not options.include_unit_text or reference.norm is None or reference.unit_text is None:
+        return reference
+    numero = unit_number(reference.unit_text)
+    if numero is None:
+        return reference
+    html_doc = client.fetch_eurlex_html(reference.norm.boe_id)
+    texto = extract_article_text(html_doc, numero)
+    if texto:
+        reference.unit_blocks = [BOEUnitBlock(
+            unit=reference.unit_text,
+            block_id=f'art_{numero}',
+            title=f'Artículo {numero}',
+            url=reference.norm.url,
+            text=texto,
+            source='eur-lex',
+        )]
+        reference.reason = 'eurlex-unit-block-resolved'
     return reference
 
 
@@ -1029,7 +1177,7 @@ def _enrich_unit_blocks(reference: BOEReference, client: BOEClient) -> BOERefere
 def _output(texto: str, references: list[BOEReference]) -> BOEEnrichmentOutput:
     stats = BOEEnrichmentStats(
         total_detected=len(references),
-        total_resolved=sum(1 for item in references if item.status in {'resolved', 'resolved-url-only'}),
+        total_resolved=sum(1 for item in references if item.status in {'resolved', 'resolved-url-only', 'resolved-eurlex'}),
         total_manual=sum(1 for item in references if item.status == 'manual'),
         total_ambiguous=sum(1 for item in references if item.status == 'ambiguous'),
         total_unresolved=sum(1 for item in references if item.status in {'needs-boe-search', 'not-found', 'network-error'}),
@@ -1061,7 +1209,7 @@ def explicar_referencia_boe(reference: BOEReference) -> str:
 def _review_section(reference: BOEReference) -> BOEReviewSection:
     if reference.status == 'manual':
         return 'manual'
-    if reference.status in {'resolved', 'resolved-url-only'}:
+    if reference.status in {'resolved', 'resolved-url-only', 'resolved-eurlex'}:
         return 'resolved'
     if reference.status == 'unsupported':
         return 'unsupported'
@@ -1208,7 +1356,7 @@ def _find_index_block(index: list[dict[str, str]], target: str) -> Optional[dict
     return None
 
 
-_RESOLVED_STATUSES = {'resolved', 'resolved-url-only', 'manual'}
+_RESOLVED_STATUSES = {'resolved', 'resolved-url-only', 'resolved-eurlex', 'manual'}
 _PENDING_STATUSES = {'needs-boe-search', 'ambiguous', 'not-found', 'network-error'}
 
 
@@ -1318,6 +1466,19 @@ def _append_warning_markdown(lines: list[str], warnings: list[str]) -> None:
         lines.extend(f"- {warning}" for warning in warnings)
 
 
+def _append_unit_blocks_html(lines: list[str], reference: BOEReference) -> None:
+    """Añade el texto íntegro de cada unidad resuelta como fila plegable."""
+    for block in reference.unit_blocks:
+        if not block.text:
+            continue
+        lines.append(
+            '<tr class="boe-unit-text"><td colspan="7">'
+            f'<details open><summary>{html.escape(block.title)}</summary>'
+            f'<p>{html.escape(block.text)}</p></details>'
+            '</td></tr>'
+        )
+
+
 def boe_report_to_html(output: BOEEnrichmentOutput) -> str:
     """
     Convierte un informe BOE a HTML semántico con enlaces seguros.
@@ -1353,11 +1514,12 @@ def boe_report_to_html(output: BOEEnrichmentOutput) -> str:
             reference = item.reference
             norm_title = reference.norm.title if reference.norm else ''
             url = _best_url(reference)
-            url_html = (
-                f'<a href="{html.escape(url, quote=True)}">{html.escape(url)}</a>'
-                if url
-                else ''
-            )
+            if url and _is_safe_http_url(url):
+                url_html = f'<a href="{html.escape(url, quote=True)}">{html.escape(url)}</a>'
+            elif url:
+                url_html = html.escape(url)
+            else:
+                url_html = ''
             lines.append(
                 '<tr>'
                 f'<td>{html.escape(reference.original_text)}</td>'
@@ -1369,6 +1531,7 @@ def boe_report_to_html(output: BOEEnrichmentOutput) -> str:
                 f'<td>{html.escape(item.suggested_action)}</td>'
                 '</tr>'
             )
+            _append_unit_blocks_html(lines, reference)
         lines.extend(['</tbody>', '</table>'])
 
     if output.warnings:
@@ -1433,6 +1596,22 @@ def _best_url(reference: BOEReference) -> str:
     if reference.norm:
         return reference.norm.url
     return ''
+
+
+def _is_safe_http_url(url: str) -> bool:
+    """
+    Acepta solo URLs http/https o relativas para incrustar en href.
+
+    Rechaza esquemas peligrosos (javascript:, data:, vbscript:, etc.) que
+    podrían llegar en una respuesta BOE manipulada o en un fichero de
+    overrides y ejecutarse al renderizar el informe HTML.
+    """
+    # Rechazar caracteres de control evita evasiones tipo "java\tscript:" con
+    # independencia de la versión de Python que sanee la URL.
+    if any(ord(char) < 0x20 or ord(char) == 0x7f for char in url):
+        return False
+    scheme = urllib.parse.urlparse(url.strip()).scheme.lower()
+    return scheme in ('', 'http', 'https')
 
 
 def _md(value: str) -> str:

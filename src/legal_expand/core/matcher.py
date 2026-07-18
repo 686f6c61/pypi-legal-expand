@@ -15,7 +15,7 @@ El sistema de matching se compone de dos clases principales:
 2. SiglasMatcher: Motor de regex y validación de contexto
 
 RESPONSABILIDADES:
-- Cargar y indexar el diccionario de 646 siglas
+- Cargar y indexar el diccionario de 647 siglas
 - Compilar regex optimizada para detección
 - Validar word boundaries y contextos especiales
 - Manejar variantes de siglas (con/sin puntos)
@@ -68,6 +68,12 @@ from .normalizer import (
     is_part_of_larger_word,
     normalize,
 )
+
+
+# Siglas del diccionario que coinciden con palabras funcionales españolas muy
+# frecuentes (artículo, pronombres, verbo). Se omiten en la expansión salvo que
+# se pidan en `include`, porque en un texto casi siempre son la palabra común.
+_COMMON_WORD_ACRONYMS = frozenset({'la', 'lo', 'le', 'les', 'da'})
 
 
 # ============================================================================
@@ -357,14 +363,29 @@ class SiglasMatcher:
     """
 
     _instance: Optional[SiglasMatcher] = None
+    _custom_instances: dict[tuple[str, ...], SiglasMatcher] = {}
     _lock: threading.Lock = threading.Lock()
 
     def __new__(cls, custom_dictionaries: Optional[list[str]] = None) -> SiglasMatcher:
-        """Implementación thread-safe del Singleton."""
+        """
+        Implementación thread-safe del Singleton.
+
+        Sin diccionarios personalizados se reutiliza una única instancia. Con
+        diccionarios personalizados se cachea una instancia por combinación de
+        rutas, evitando recargar y recompilar la regex en cada llamada.
+        """
         if custom_dictionaries:
-            instance = super().__new__(cls)
-            instance._initialize(custom_dictionaries)
-            return instance
+            key = tuple(custom_dictionaries)
+            cached = cls._custom_instances.get(key)
+            if cached is not None:
+                return cached
+            with cls._lock:
+                cached = cls._custom_instances.get(key)
+                if cached is None:
+                    cached = super().__new__(cls)
+                    cached._initialize(custom_dictionaries)
+                    cls._custom_instances[key] = cached
+                return cached
 
         if cls._instance is None:
             with cls._lock:
@@ -374,7 +395,9 @@ class SiglasMatcher:
         return cls._instance
 
     def __init__(self, custom_dictionaries: Optional[list[str]] = None) -> None:
-        # La inicialización real ocurre en __new__ para preservar el singleton.
+        # La inicialización real ocurre en __new__ (una sola vez por instancia
+        # cacheada) para preservar el singleton. No mover la carga aquí: __init__
+        # se ejecuta en cada construcción y reinicializaría la instancia cacheada.
         pass
 
     def _initialize(self, custom_dictionaries: Optional[list[str]] = None) -> None:
@@ -603,9 +626,10 @@ class SiglasMatcher:
 
     @classmethod
     def reset_instance(cls) -> None:
-        """Resetea la instancia singleton (útil para testing)."""
+        """Resetea la instancia singleton y la caché custom (útil para testing)."""
         with cls._lock:
             cls._instance = None
+            cls._custom_instances.clear()
 
     def find_matches(self, text: str, options: InternalOptions) -> list[MatchInfo]:
         """
@@ -676,11 +700,19 @@ class SiglasMatcher:
         if options.exclude and self._contains_normalized(options.exclude, normalized_matched):
             return 'excluded'
 
-        if options.include is not None and not self._contains_normalized(
-            options.include,
-            normalized_matched,
-        ):
+        explicitly_included = (
+            options.include is not None
+            and self._contains_normalized(options.include, normalized_matched)
+        )
+
+        if options.include is not None and not explicitly_included:
             return 'not-in-include'
+
+        # Siglas idénticas a palabras funcionales españolas ("la", "lo", "le",
+        # "les", "da") se omiten salvo que se pidan en include: casi siempre son
+        # la palabra común, no la sigla (evita "A LA" -> "Ley de Aguas").
+        if normalized_matched in _COMMON_WORD_ACRONYMS and not explicitly_included:
+            return 'common-word'
 
         if options.expand_only_first:
             if normalized_matched in seen:

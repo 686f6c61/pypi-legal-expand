@@ -10,7 +10,7 @@ Punto de entrada principal del paquete legal-expand para Python.
 Librería para expandir automáticamente siglas legales en textos
 jurídicos españoles, añadiendo su significado completo.
 
-646 siglas legales verificadas de fuentes oficiales (RAE, BOE, DPEJ).
+647 siglas legales verificadas de fuentes oficiales (RAE, BOE, DPEJ).
 
 ARQUITECTURA:
 Este módulo actúa como fachada pública del paquete, exponiendo:
@@ -48,7 +48,7 @@ Example:
 
 from __future__ import annotations
 
-__version__ = "1.5.2"
+__version__ = "1.6.0"
 __author__ = "686f6c61"
 
 # ============================================================================

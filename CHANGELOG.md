@@ -5,6 +5,37 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.6.0] - 2026-07-18
+
+### Cambiado
+
+- **Licencia**: desde `1.6.0`, PolyForm Noncommercial License 1.0.0 (uso no comercial). Las versiones `1.5.x` y previas ya publicadas siguen bajo MIT.
+
+### Añadido
+
+- **Resolución de cualquier norma española del BOE** mediante un índice local del catálogo consolidado (`data/boe_index.json`, 10.555 normas). Resuelve por rango y número oficial (por ejemplo «Ley 19/2013» → `BOE-A-2013-12887`) de forma offline, sin depender de los alias curados. Opción `BOEOptions.use_boe_index` (activada por defecto).
+- **Traer el texto íntegro de los artículos del BOE**: el modo online (`include_unit_text=True`) descarga y devuelve el contenido completo del artículo citado, no solo su URL.
+- **Normativa de la UE resuelta a EUR-Lex** (`resolved-eurlex`): los reglamentos, directivas y decisiones de la Unión (RGPD, `Reglamento (UE) 2016/679`, `Directiva 2000/31/CE`…) se enlazan a su página oficial en EUR-Lex por su número CELEX, en lugar de marcarse como no soportadas.
+- **Traer el texto íntegro del artículo desde EUR-Lex**: en modo online, el articulado de la normativa UE se descarga igual que el del BOE (soporta el formato moderno con anclas y el antiguo).
+- **RGPD** añadido al diccionario de siglas: se expande como «Reglamento General de Protección de Datos».
+- **Transporte HTTP inyectable** en `BOEClient` (`transport=(url, accept) -> body`) para usar el enriquecimiento en entornos sin `urllib` (navegador con Pyodide) o detrás de un proxy.
+- `boe_report_to_html` incluye el texto íntegro de cada unidad resuelta.
+- Reintentos con backoff en el cliente BOE.
+
+### Corregido
+
+- **Seguridad (XSS)**: el formatter HTML escapa también el texto circundante a las siglas, no solo la sigla y su expansión.
+- El texto de un artículo del BOE con varias redacciones (modificado) devolvía todas las versiones duplicadas; ahora se usa solo la versión vigente.
+- El endpoint de bloque del BOE solo acepta XML; pedirlo con `Accept: application/json` devolvía 400 y el texto del artículo nunca llegaba. Ahora se pide con el `Accept` correcto.
+- Enlaces del informe BOE en HTML: allowlist de esquemas `http`/`https` (neutraliza `javascript:`/`data:`).
+- Caché BOE tolerante a `timestamp` corrupto.
+
+### Verificado
+
+- Suite completa de tests con umbral de cobertura del `90%`, `mypy`, `ruff` y `bandit` limpios.
+- Resolución por índice, traer artículos del BOE y de EUR-Lex verificados contra las fuentes reales.
+- Resolución por índice y traer artículos verificados contra la API real del BOE.
+
 ## [1.5.2] - 2026-06-15
 
 ### Cambiado

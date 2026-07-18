@@ -177,6 +177,7 @@ OmittedAcronymReason = Literal[
     'inside-email',
     'inside-code-block',
     'inside-inline-code',
+    'common-word',
     'not-found',
 ]
 
@@ -343,12 +344,14 @@ BOEReferenceKind = Literal[
     'boe-id',
     'norm',
     'unit',
+    'eu',
     'unsupported',
 ]
 BOEReferenceStatus = Literal[
     'manual',
     'resolved',
     'resolved-url-only',
+    'resolved-eurlex',
     'needs-boe-search',
     'ambiguous',
     'unsupported',
@@ -372,9 +375,12 @@ class BOEOptions(SerializableMixin):
     include_unit_text: bool = True
     infer_single_active_norm: bool = True
     use_curated_aliases: bool = True
+    use_boe_index: bool = True
     cache_path: Optional[str] = None
     cache_ttl_days: int = 30
     overrides_path: Optional[str] = None
+    max_retries: int = 2
+    retry_backoff_seconds: float = 0.5
 
 
 @dataclass

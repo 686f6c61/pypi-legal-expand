@@ -83,6 +83,29 @@ def test_diccionario_personalizado_json(tmp_path):
     assert 'test' in info.sources
 
 
+def test_matcher_cachea_instancia_por_rutas(tmp_path):
+    from legal_expand.core.matcher import SiglasMatcher, get_matcher
+
+    custom = tmp_path / 'custom.json'
+    custom.write_text(json.dumps([
+        {'acronym': 'LXP', 'expansion': 'Legal Expand Personalizado'}
+    ]), encoding='utf-8')
+    otro = tmp_path / 'otro.json'
+    otro.write_text(json.dumps([
+        {'acronym': 'OTR', 'expansion': 'Otro Diccionario'}
+    ]), encoding='utf-8')
+
+    SiglasMatcher.reset_instance()
+    primera = get_matcher([str(custom)])
+    segunda = get_matcher([str(custom)])
+    distinta = get_matcher([str(otro)])
+
+    assert primera is segunda
+    assert primera is not distinta
+
+    SiglasMatcher.reset_instance()
+
+
 def test_diccionario_personalizado_csv(tmp_path):
     custom = tmp_path / 'custom.csv'
     custom.write_text(

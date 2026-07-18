@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "legal-expand"
-version = "1.5.2"
-description = "Smart expansion, CLI, audit, glossary and batch processing for Spanish legal acronyms. 646 verified acronyms from RAE, BOE and DPEJ. | Expansión inteligente de siglas legales españolas."
+version = "1.6.0"
+description = "Smart expansion, CLI, audit, glossary and batch processing for Spanish legal acronyms. 647 verified acronyms from RAE, BOE and DPEJ. | Expansión inteligente de siglas legales españolas."
 readme = "README.md"
-license = "MIT"
+license = "PolyForm-Noncommercial-1.0.0"
 license-files = ["LICENSE"]
 authors = [
     {name = "686f6c61"}
@@ -51,7 +51,10 @@ dependencies = []
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
-    "pytest-cov>=4.0.0"
+    "pytest-cov>=4.0.0",
+    "ruff>=0.5.0",
+    "mypy>=1.8.0",
+    "bandit>=1.7.0"
 ]
 
 [project.urls]

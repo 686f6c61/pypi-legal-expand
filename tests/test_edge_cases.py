@@ -145,3 +145,12 @@ class TestEstadisticas:
         assert aeat.position.start == 3
         assert aeat.position.end == 7
         assert 'La AEAT notifica'[aeat.position.start:aeat.position.end] == 'AEAT'
+
+
+def test_no_expande_palabras_funcionales_comunes():
+    """Siglas que coinciden con palabras funcionales (LA, LO, LE, LES, DA)."""
+    assert 'Ley de Aguas' not in expandir_siglas('A LA CONSEJERÍA COMPETENTE')
+    assert 'ley orgánica' not in expandir_siglas('LO que proceda en Derecho')
+    assert 'Ley de Empleo' not in expandir_siglas('Se LE notifica al interesado')
+    # Sí se expanden si se piden explícitamente en include.
+    assert 'Ley de Aguas' in expandir_siglas('LA', ExpansionOptions(include=['LA']))

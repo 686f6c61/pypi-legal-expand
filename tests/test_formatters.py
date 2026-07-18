@@ -132,6 +132,33 @@ class TestHtmlFormatter:
         assert '<script>' not in result
         assert '&lt;script&gt;' in result
 
+    def test_escapa_texto_circundante(self):
+        """El texto original fuera de las siglas también se escapa (anti-XSS)."""
+        formatter = FormatterFactory.get_formatter('html')
+        text = '<img src=x onerror=alert(1)> La AEAT informa'
+        start = text.index('AEAT')
+        matches = [
+            MatchInfo(
+                original='AEAT',
+                expansion='Agencia Estatal',
+                start_pos=start,
+                end_pos=start + 4,
+                confidence=1.0,
+                has_multiple_meanings=False
+            )
+        ]
+        result = formatter.format(text, matches)
+        assert '<img' not in result
+        assert '&lt;img src=x onerror=alert(1)&gt;' in result
+        assert '<abbr title="Agencia Estatal">AEAT</abbr>' in result
+
+    def test_escapa_texto_sin_matches(self):
+        """Sin matches, el marcado no confiable se escapa en vez de pasar tal cual."""
+        formatter = FormatterFactory.get_formatter('html')
+        result = formatter.format('<script>alert(1)</script>', [])
+        assert '<script>' not in result
+        assert '&lt;script&gt;alert(1)&lt;/script&gt;' in result
+
 
 class TestStructuredFormatter:
     """Tests para StructuredFormatter."""

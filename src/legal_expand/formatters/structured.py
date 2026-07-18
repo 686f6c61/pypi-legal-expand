@@ -145,10 +145,9 @@ class StructuredFormatter(Formatter):
             if stats is not None
             else len(matches)
         )
-        total_expanded = sum(
-            1 for m in matches
-            if not m.has_multiple_meanings or m.expansion
-        )
+        # Las siglas ambiguas se filtran antes de llegar aquí, por lo que la
+        # lista de matches ya contiene solo expansiones efectivas.
+        total_expanded = len(matches)
         ambiguous_not_expanded = (
             stats.ambiguous_not_expanded
             if stats is not None

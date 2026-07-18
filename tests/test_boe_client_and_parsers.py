@@ -4,7 +4,6 @@ Cobertura de cliente BOE, parsers y ramas defensivas deterministas.
 
 import json
 import time
-from pathlib import Path
 
 import pytest
 
@@ -93,7 +92,7 @@ def test_boe_client_get_fetches_and_caches_without_real_network(monkeypatch, tmp
 def test_boe_client_search_resolve_index_and_unit_blocks(monkeypatch, tmp_path):
     client = BOEClient(BOEOptions(mode='online', cache_path=str(tmp_path)))
 
-    def fake_get(path):
+    def fake_get(path, accept=None):
         if path.startswith('/datosabiertos/api/legislacion-consolidada?'):
             return json.dumps({
                 'items': [
@@ -220,7 +219,7 @@ def test_boe_overrides_aliases_invalidos_y_manual_protegido(tmp_path):
 
     no_curated = detectar_referencias_boe(
         'La Ley 39/2015 se cita sin aliases curados.',
-        BOEOptions(use_curated_aliases=False),
+        BOEOptions(use_curated_aliases=False, use_boe_index=False),
         overrides={'aliases': []},
     )
     assert no_curated.references[0].status == 'needs-boe-search'
