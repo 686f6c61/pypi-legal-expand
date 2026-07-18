@@ -1,6 +1,6 @@
 ================================================================================
-                    DEMO Y GUIA RAPIDA - legal-expand 1.5.2
-          646 siglas legales espanolas + asistente BOE determinista
+                    DEMO Y GUIA RAPIDA - legal-expand 1.6.0
+          647 siglas legales espanolas + asistente BOE determinista
 ================================================================================
 
 Este archivo acompana al notebook `legal_expand_demo.ipynb`.
@@ -18,7 +18,7 @@ Abre la demo interactiva:
 
 La primera celda instala la version exacta:
 
-  !pip install -U legal-expand==1.5.2 -q
+  !pip install -U legal-expand==1.6.0 -q
 
 El notebook cubre expansion de siglas, diagnostico, auditoria, glosarios,
 procesamiento batch, diccionarios personalizados, CLI y una matriz BOE de 25
@@ -31,7 +31,7 @@ OPCION 2: TERMINAL
 
 Instalar:
 
-  python -m pip install -U legal-expand==1.5.2
+  python -m pip install -U legal-expand==1.6.0
 
 Expandir texto desde stdin:
 
@@ -176,7 +176,7 @@ la unidad detectada si existe, candidatos cuando los haya y una nota explicativa
 CALIDAD Y VERIFICACION
 --------------------------------------------------------------------------------
 
-La release 1.5.2 mantiene la API de 1.5.1 y corrige la presentacion publica
+La release 1.6.0 mantiene la API de 1.5.1 y corrige la presentacion publica
 de la documentacion, badges y demo reproducible.
 Antes de publicarla hay que validar:
 
@@ -194,6 +194,6 @@ PyPI:       https://pypi.org/project/legal-expand/
 GitHub:     https://github.com/686f6c61/pypi-legal-expand
 Colab:      https://colab.research.google.com/github/686f6c61/pypi-legal-expand/blob/main/legal_expand_demo.ipynb
 npm:        https://www.npmjs.com/package/legal-expand
-Licencia:   MIT
+Licencia:   PolyForm Noncommercial 1.0.0 (uso no comercial; 1.5.x y previas siguen MIT)
 
 ================================================================================

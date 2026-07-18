@@ -533,7 +533,7 @@ def listar_siglas(custom_dictionaries: Optional[list[str]] = None) -> list[str]:
     Example:
         >>> siglas = listar_siglas()
         >>> len(siglas)
-        646
+        647
         >>> siglas[:5]
         ['AEAT', 'AENA', 'AIE', 'AJD', ...]
     """
@@ -555,9 +555,9 @@ def obtener_estadisticas(
     Example:
         >>> stats = obtener_estadisticas()
         >>> stats.total_acronyms
-        646
+        647
         >>> stats.acronyms_with_duplicates
-        0
+        5
     """
     matcher = get_matcher(custom_dictionaries)
     return matcher.obtener_estadisticas()

@@ -69,9 +69,10 @@ class HtmlFormatter(Formatter):
         todos los caracteres HTML especiales.
 
     Algorithm:
-        1. Ordena matches en orden DESCENDENTE
-        2. Para cada match, genera <abbr> + expansión inline
-        3. Reemplaza desde el final hacia el inicio
+        1. Ordena matches en orden ASCENDENTE
+        2. Escapa el texto original entre coincidencias
+        3. Para cada match, genera <abbr> + expansión inline con sigla y
+           expansión escapadas
     """
 
     @staticmethod
@@ -100,6 +101,10 @@ class HtmlFormatter(Formatter):
         """
         Formatea el texto con HTML semántico.
 
+        Todo el texto original que no forma parte de una sigla del diccionario
+        se escapa también, de modo que la salida es segura para incrustar en
+        HTML aunque el texto de entrada contenga marcado no confiable.
+
         Args:
             original_text: Texto original sin modificar
             matches: Lista de matches encontrados
@@ -107,29 +112,27 @@ class HtmlFormatter(Formatter):
         Returns:
             Texto con siglas expandidas en formato HTML
         """
-        if not matches:
-            return original_text
+        # PASO 1: Ordenar matches en orden ASCENDENTE
+        sorted_matches = sorted(matches, key=lambda m: m.start_pos)
 
-        # PASO 1: Ordenar matches en orden DESCENDENTE
-        sorted_matches = sorted(matches, key=lambda m: m.start_pos, reverse=True)
+        parts: list[str] = []
+        cursor = 0
 
-        result = original_text
-
-        # PASO 2: Procesar desde el final hacia el inicio
+        # PASO 2: Recorrer de inicio a fin escapando el texto intermedio
         for match in sorted_matches:
-            # PASO 3: Usar la forma resuelta por el matcher
-            acronym_text = match.original
+            # Texto anterior al match: escapar para evitar XSS
+            parts.append(self.escape_html(original_text[cursor:match.start_pos]))
 
-            # PASO 4: Generar reemplazo con <abbr> + expansión inline
+            # PASO 3: Generar reemplazo con <abbr> + expansión inline
             escaped_expansion = self.escape_html(match.expansion)
-            escaped_acronym = self.escape_html(acronym_text)
-
-            replacement = (
+            escaped_acronym = self.escape_html(match.original)
+            parts.append(
                 f'<abbr title="{escaped_expansion}">'
                 f'{escaped_acronym}</abbr> ({escaped_expansion})'
             )
+            cursor = match.end_pos
 
-            # PASO 5: Reemplazar en el resultado
-            result = result[:match.start_pos] + replacement + result[match.end_pos:]
+        # PASO 4: Escapar el texto restante tras la última coincidencia
+        parts.append(self.escape_html(original_text[cursor:]))
 
-        return result
+        return ''.join(parts)

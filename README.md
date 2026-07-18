@@ -5,56 +5,64 @@
 [![Python](https://img.shields.io/pypi/pyversions/legal-expand?label=Python)](https://pypi.org/project/legal-expand/)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/686f6c61/pypi-legal-expand/blob/main/legal_expand_demo.ipynb)
 
-# Siglas legales españolas para documentos jurídicos
+# Siglas jurídicas españolas, con el BOE y EUR-Lex a un clic
 
-**646 siglas legales españolas verificadas** | Expansión inteligente para textos jurídicos
+**647 siglas verificadas** · resuelve referencias del BOE (España) y EUR-Lex (UE) · trae el texto íntegro de los artículos
 
 ## ¿Qué hace este paquete?
 
-`legal-expand` es una librería Python que **expande automáticamente siglas legales** en textos jurídicos españoles, añadiendo su significado completo entre paréntesis para facilitar la comprensión.
+`legal-expand` **expande las siglas legales** de un texto jurídico, añadiendo su significado entre paréntesis, y **resuelve las referencias normativas** que contiene: enlaza cualquier norma citada, esté en el BOE o en EUR-Lex, y en modo online trae el texto íntegro del artículo. Encaja bien para dar **contexto a modelos de IA** (respuestas verificables, no de memoria) y para **profesionales** que necesitan la norma al instante.
 
 **Ejemplo:**
 ```
-Entrada: "La AEAT notifica el IVA según el art. 123 del CC"
-Salida:  "La AEAT (Agencia Estatal de Administración Tributaria) notifica el IVA (Impuesto sobre el Valor Añadido) según el art. (Artículo) 123 del CC (Código Civil)"
+Entrada: "La AEAT notifica el IVA según el art. 14 de la Ley 39/2015 y el art. 6 del RGPD"
+Salida:  "La AEAT (Agencia Estatal de Administración Tributaria) notifica el IVA (Impuesto sobre el Valor Añadido) según el art. (Artículo) 14 de la Ley 39/2015 y el art. (Artículo) 6 del RGPD (Reglamento General de Protección de Datos)"
 ```
+
+Con el enriquecimiento activado, además, cada norma citada se resuelve a su URL oficial y, en modo online, a su texto íntegro: la Ley 39/2015 desde el BOE, el RGPD desde EUR-Lex.
 
 ### Características principales
 
-- **646 siglas verificadas** de leyes, organismos, impuestos, tribunales y procedimientos
-- **Fuentes oficiales**: RAE, DPEJ, BOE y legislación vigente
-- **Detección inteligente** de variantes (AEAT, A.E.A.T., A.E.A.T)
-- **Múltiples formatos**: texto plano, HTML semántico, JSON estructurado
-- **Diagnóstico de omisiones**: razones estables para siglas omitidas por filtros o contexto
-- **Enriquecimiento BOE opt-in**: detecta citas legales, enlaza normas, explica dudas y genera revisión editable sin inventar referencias
-- **CLI oficial**: expansión, auditoría, glosario, batch, metadata, benchmark y BOE desde terminal
-- **Glosarios y auditoría**: exportación Markdown, CSV y JSON
-- **Procesamiento de documentos**: `.txt`, `.md`, `.html` y carpetas completas
-- **Diccionarios personalizados**: añade siglas propias desde JSON o CSV
-- **Documentos largos optimizados**: expandir solo primera ocurrencia para evitar repeticiones
-- **Control granular**: configuración global + override por llamada
-- **Zero dependencies**: sin dependencias en runtime
-- **Type hints completos**: tipos para autocompletado en IDEs
-- **Python 3.9+**: compatible con versiones modernas
+- **647 siglas verificadas** de leyes, organismos, impuestos, tribunales y procedimientos (fuentes: RAE, DPEJ, BOE y legislación vigente).
+- **Resuelve cualquier norma española del BOE** por su rango y número, mediante un índice local del catálogo consolidado (10.555 normas), sin depender de una lista fija de alias.
+- **Trae el texto íntegro de los artículos** del BOE en modo online (`include_unit_text`).
+- **Normativa de la UE en EUR-Lex**: reglamentos, directivas y decisiones se enlazan por su número CELEX y traen su articulado.
+- **Detección inteligente** de variantes (AEAT, A.E.A.T.) y de contexto (no expande dentro de URLs, emails o código, ni palabras funcionales como «la» o «lo»).
+- **Tres formatos**: texto plano, HTML semántico con `<abbr>`, JSON estructurado.
+- **CLI oficial**: `expand`, `audit`, `glossary`, `boe`, `batch`, `info`, `benchmark`.
+- **Glosarios y auditoría**: exportación Markdown, CSV y JSON.
+- **Procesamiento de documentos**: `.txt`, `.md`, `.html` y carpetas completas.
+- **Diccionarios personalizados**: añade siglas propias desde JSON o CSV.
+- **Cero dependencias** en runtime, type hints completos, compatible con **Python 3.9+**.
 
 ## Demo interactiva
 
 Prueba el paquete sin instalar nada:
 
+- **Web con demo en vivo**: [legal-expand.686f6c61.dev](https://legal-expand.686f6c61.dev) (corre el paquete real en el navegador con Pyodide).
+- **Notebook en Google Colab**:
+
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/686f6c61/pypi-legal-expand/blob/main/legal_expand_demo.ipynb)
 
-El notebook incluye ejemplos de todos los casos de uso: expansión básica, formatos de salida, configuración global, documentos reales, herramientas interactivas y una sección BOE con matriz de 25 casos, revisión explicada, salidas Markdown/HTML/por párrafos, referencias ambiguas, normativa UE no soportada y overrides manuales.
+El notebook incluye ejemplos de todos los casos de uso: expansión básica, formatos de salida, configuración global, documentos reales, herramientas interactivas y una sección BOE con matriz de 25 casos, revisión explicada, salidas Markdown/HTML/por párrafos, referencias ambiguas, normativa UE resuelta a EUR-Lex y overrides manuales.
 
-## Estado de la versión 1.5.2
+## Estado de la versión 1.6.0
 
-`1.5.2` es una release de documentación y publicación. Mantiene la API de `1.5.1`, corrige la fila de badges del README y deja las notas públicas centradas en el comportamiento del paquete. No cambia el comportamiento funcional del asistente BOE: sigue siendo conservador y determinista, y si una referencia no es inequívoca la marca para revisión en lugar de inventar un enlace.
+`1.6.0` refuerza el asistente BOE sin perder su carácter conservador y determinista:
 
-La verificación de la release incluye tests con cobertura y umbral mínimo del `90%`, Bandit, build wheel/sdist, `twine check` y smoke install desde wheel antes de publicar.
+- **Resuelve cualquier norma española del BOE por su número.** Además de los alias curados, el paquete incluye un índice local del catálogo consolidado (10.555 normas) que resuelve por rango y número oficial (por ejemplo `Ley 19/2013` → `BOE-A-2013-12887`) de forma offline. Se controla con `BOEOptions(use_boe_index=True)`, activo por defecto.
+- **Trae el texto íntegro de los artículos.** En modo online (`include_unit_text=True`) descarga y devuelve el contenido completo del artículo citado, no solo su URL.
+- **Transporte HTTP inyectable** en `BOEClient` para usar el enriquecimiento en entornos sin `urllib` (navegador con Pyodide) o detrás de un proxy.
+- **Seguridad:** el formatter HTML escapa también el texto circundante a las siglas (corrección de XSS).
+
+La normativa de la Unión Europea (`RGPD`, `Reglamento (UE) 2016/679`, `Directiva 2000/31/CE`…) no está en el BOE, pero se resuelve a su página oficial en **EUR-Lex** por su número CELEX, y en modo online trae también el texto íntegro del artículo citado.
+
+La verificación de la release incluye tests con cobertura y umbral mínimo del `90%`, `mypy`, `ruff` y Bandit limpios, build wheel/sdist, `twine check` y smoke install desde wheel antes de publicar.
 
 ## Índice
 
 - [Demo interactiva](#demo-interactiva)
-- [Estado de la versión 1.5.2](#estado-de-la-versión-152)
+- [Estado de la versión 1.6.0](#estado-de-la-versión-160)
 - [Instalación](#instalación)
 - [CLI](#cli)
 - [Uso básico](#uso-básico)
@@ -289,7 +297,7 @@ print(reporte.stats.to_dict())
 
 ## Enriquecimiento BOE
 
-`legal-expand` incluye un asistente determinista para detectar referencias legales españolas y generar un informe con enlaces al BOE. Esta función está pensada para revisar documentos jurídicos, sentencias, escritos administrativos, apuntes de oposición o informes donde ya aparecen citadas normas concretas.
+`legal-expand` incluye un asistente determinista para detectar referencias legales y generar un informe con enlaces oficiales: las normas españolas se enlazan al BOE y la normativa de la Unión Europea (reglamentos, directivas, decisiones y el RGPD) a EUR-Lex por su número CELEX. Esta función está pensada para revisar documentos jurídicos, sentencias, escritos administrativos, apuntes de oposición o informes donde ya aparecen citadas normas concretas.
 
 La herramienta no interpreta el documento ni decide qué artículos deberían aplicarse. Solo trabaja con referencias explícitas o suficientemente identificables. Si el texto dice `art. 14.2 de la Ley 39/2015`, la referencia es clara y puede resolverse. Si el texto dice simplemente `el artículo 14` o `la Ley 2/2023`, la herramienta puede marcarlo como ambiguo o pendiente de revisión, porque no hay información suficiente para elegir una norma con seguridad.
 
@@ -297,7 +305,7 @@ Esta limitación es deliberada. En derecho, enlazar una norma incorrecta es peor
 
 ### Uso rápido
 
-Por defecto el comando BOE funciona en modo `offline`: detecta referencias, usa aliases conservadores incluidos en el paquete y no consulta red. Esto permite resultados reproducibles incluso en CI o entornos sin acceso estable al BOE.
+Por defecto el comando BOE funciona en modo `offline`: detecta referencias y las resuelve sin consultar red, combinando los aliases conservadores curados con un índice local del catálogo consolidado (10.555 normas) que localiza cualquier norma española por su rango y número oficial. Esto permite resultados reproducibles incluso en CI o entornos sin acceso estable al BOE.
 
 ```bash
 legal-expand boe sentencia.txt --output referencias-boe.md
@@ -359,6 +367,45 @@ por_parrafos = boe_report_by_paragraph_markdown(informe_boe)
 template = boe_overrides_template(informe_boe)
 ```
 
+### Ejemplos concretos
+
+**Resolver una norma por el índice del catálogo consolidado.** El índice local resuelve cualquier norma española por su rango y número, sin depender de la lista de aliases curados y sin consultar red.
+
+```python
+from legal_expand import detectar_referencias_boe, BOEOptions
+
+# use_boe_index está activo por defecto
+informe = detectar_referencias_boe(
+    'La Ley 19/2013 de transparencia obliga a publicar la información.',
+    BOEOptions(use_boe_index=True),
+)
+# La referencia se resuelve a BOE-A-2013-12887 de forma offline
+```
+
+**Traer el texto íntegro de un artículo en modo online.** Con `include_unit_text=True` (por defecto) el modo `online` descarga el contenido completo del artículo citado, no solo su URL.
+
+```python
+from legal_expand import enriquecer_boe, BOEOptions
+
+informe = enriquecer_boe(
+    'La notificación electrónica se rige por el art. 14.2 de la Ley 39/2015.',
+    BOEOptions(mode='online', include_unit_text=True),
+)
+# El informe incluye la URL del BOE y el texto íntegro del artículo 14.2
+```
+
+**Resolver normativa de la UE a EUR-Lex.** Los reglamentos, directivas y decisiones, así como el `RGPD`, se resuelven a su página oficial en EUR-Lex por su número CELEX y, en modo online, traen su articulado.
+
+```python
+from legal_expand import enriquecer_boe, BOEOptions
+
+informe = enriquecer_boe(
+    'El tratamiento se ampara en el art. 6 del RGPD.',
+    BOEOptions(mode='online', include_unit_text=True),
+)
+# La referencia queda en estado 'resolved-eurlex' con enlace a EUR-Lex y el texto del artículo 6
+```
+
 ### Cuándo funciona bien
 
 Funciona especialmente bien cuando el documento contiene citas jurídicas normales y completas: `art. 217 LEC`, `artículo 24 de la Constitución Española`, `art. 14.2 de la Ley 39/2015`, `Real Decreto 203/2021` o `Ley Orgánica 3/2018`. También reconoce algunas formas abreviadas habituales, como `RD 203/2021`, `LO 3/2018`, `disp. final séptima`, `art. 14.2.a)` y `artículo 14 bis`.
@@ -373,7 +420,7 @@ No todas las referencias legales son seguras. Algunas normas comparten número y
 
 Tampoco se resuelven automáticamente referencias incompletas como `el artículo 14`, menciones genéricas como `la ley administrativa`, ni frases donde aparecen varias normas y después se cita un artículo sin aclarar a cuál pertenece. En esos casos, la salida marca la referencia como ambigua, no encontrada o pendiente de revisión.
 
-La herramienta tampoco sustituye bases de datos jurídicas ni realiza interpretación legal. No resuelve jurisprudencia, no analiza sentencias para inferir doctrina y no propone artículos aplicables que no estén citados en el texto. Las referencias de la Unión Europea, como `Reglamento (UE) 2016/679` o `RGPD`, se marcan como no soportadas por esta función BOE.
+La herramienta tampoco sustituye bases de datos jurídicas ni realiza interpretación legal. No resuelve jurisprudencia, no analiza sentencias para inferir doctrina y no propone artículos aplicables que no estén citados en el texto. Las referencias de la Unión Europea, como `Reglamento (UE) 2016/679` o `RGPD`, no están en el BOE, pero sí se resuelven: se enlazan a EUR-Lex por su número CELEX y quedan en estado `resolved-eurlex`.
 
 ### Estados del informe
 
@@ -381,12 +428,13 @@ El informe usa estados estables para que puedas auditar el resultado:
 
 - `resolved`: referencia resuelta con bloque concreto de BOE.
 - `resolved-url-only`: norma enlazada, sin insertar texto de artículo.
+- `resolved-eurlex`: normativa de la UE resuelta a su página en EUR-Lex por número CELEX.
 - `manual`: referencia confirmada por la persona usuaria mediante overrides.
 - `needs-boe-search`: necesita consulta BOE para intentar resolver.
 - `ambiguous`: hay demasiada duda para elegir una norma.
 - `not-found`: no se encontró una norma o unidad suficientemente identificable.
-- `unsupported`: referencia fuera del alcance BOE, por ejemplo normativa UE.
-- `network-error`: BOE no respondió dentro del timeout o falló la consulta.
+- `unsupported`: referencia fuera del alcance de las fuentes soportadas (BOE y EUR-Lex).
+- `network-error`: BOE o EUR-Lex no respondieron dentro del timeout o falló la consulta.
 
 ### Revisión y edición manual
 
@@ -656,7 +704,7 @@ from legal_expand import obtener_estadisticas
 
 stats = obtener_estadisticas()
 print(stats)
-# DictionaryStats(total_acronyms=646, acronyms_with_duplicates=0, acronyms_with_punctuation=150)
+# DictionaryStats(total_acronyms=647, acronyms_with_duplicates=5, acronyms_with_punctuation=55)
 
 print(f"El diccionario contiene {stats.total_acronyms} siglas")
 ```
@@ -1007,13 +1055,13 @@ Genera informe de auditoría con conocidas, desconocidas, omitidas, repetidas y 
 
 ### detectar_referencias_boe(texto, opciones?)
 
-Detecta referencias legales españolas sin consultar red. Usa aliases conservadores, protege URLs/emails/código y marca referencias dudosas como ambiguas o pendientes.
+Detecta referencias legales sin consultar red. Combina los aliases conservadores con un índice local del catálogo consolidado (10.555 normas) para resolver normas españolas por rango y número, enlaza la normativa de la UE a EUR-Lex por su número CELEX, protege URLs/emails/código y marca referencias dudosas como ambiguas o pendientes.
 
 **Retorna:** `BOEEnrichmentOutput`
 
 ### enriquecer_boe(texto, opciones?)
 
-Detecta referencias y, si `BOEOptions.mode` es `cache-first` u `online`, intenta completar normas y bloques concretos mediante la API de legislación consolidada del BOE.
+Detecta referencias y, si `BOEOptions.mode` es `cache-first` u `online`, intenta completar normas y bloques concretos: las españolas mediante la API de legislación consolidada del BOE y las de la UE mediante EUR-Lex, trayendo el texto íntegro del artículo citado cuando `include_unit_text` está activo.
 
 **Retorna:** `BOEEnrichmentOutput`
 
@@ -1056,6 +1104,7 @@ class BOEOptions:
     include_unit_text: bool = True
     infer_single_active_norm: bool = True
     use_curated_aliases: bool = True
+    use_boe_index: bool = True
     cache_path: Optional[str] = None
     cache_ttl_days: int = 30
     overrides_path: Optional[str] = None
@@ -1168,7 +1217,7 @@ class DictionaryStats:
 
 ## Siglas incluidas
 
-El paquete incluye **646 siglas legales españolas**, organizadas en las siguientes categorías:
+El paquete incluye **647 siglas legales españolas**, organizadas en las siguientes categorías:
 
 ### Impuestos y tributos (45 siglas)
 
@@ -1260,10 +1309,12 @@ Para añadir nuevas siglas, edita el archivo `src/legal_expand/data/dictionary.j
 
 ## Licencia
 
-MIT
+Desde la versión `1.6.0`, **PolyForm Noncommercial License 1.0.0** (uso no comercial: personal, investigación, educación y organizaciones sin ánimo de lucro). El uso comercial no está permitido. Ver el archivo [`LICENSE`](LICENSE).
+
+Las versiones anteriores publicadas (`1.5.x` y previas) permanecen bajo licencia MIT.
 
 ## Créditos
 
-Desarrollado con el diccionario de 646 siglas legales españolas verificadas de fuentes oficiales (RAE, BOE, DPEJ).
+Desarrollado con el diccionario de 647 siglas legales españolas verificadas de fuentes oficiales (RAE, BOE, DPEJ).
 
 Basado en el paquete npm [legal-expand](https://www.npmjs.com/package/legal-expand).

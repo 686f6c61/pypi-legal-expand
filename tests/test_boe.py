@@ -20,7 +20,13 @@ from legal_expand import (
     revisar_boe,
 )
 from legal_expand.cli import main as cli_main
-from legal_expand.boe import BOEClient, _parse_norms, _unit_targets
+from legal_expand.boe import (
+    BOEClient,
+    _is_safe_http_url,
+    _parse_norms,
+    _plain_text,
+    _unit_targets,
+)
 
 
 class FakeBOEClient:
@@ -126,12 +132,12 @@ BOE_DEEP_CASES = [
     (
         'rgpd_sigla_no_boe',
         'La base jurídica es el art. 6 RGPD.',
-        [{'status': 'unsupported', 'boe_id': None, 'unit_text': 'art. 6'}],
+        [{'status': 'resolved-eurlex', 'boe_id': '32016R0679', 'unit_text': 'art. 6'}],
     ),
     (
         'reglamento_ue_no_boe',
         'La base jurídica es el artículo 6 del Reglamento (UE) 2016/679.',
-        [{'status': 'unsupported', 'boe_id': None, 'unit_text': 'artículo 6'}],
+        [{'status': 'resolved-eurlex', 'boe_id': '32016R0679', 'unit_text': 'artículo 6'}],
     ),
     (
         'orden_anexo',
@@ -158,7 +164,7 @@ BOE_DEEP_CASES = [
         'El art. 6.1 de la LO 3/2018 debe coordinarse con el RGPD.',
         [
             {'status': 'resolved-url-only', 'boe_id': 'BOE-A-2018-16673', 'unit_text': 'art. 6.1'},
-            {'status': 'unsupported', 'boe_id': None, 'unit_text': None, 'norm_text': 'RGPD'},
+            {'status': 'resolved-eurlex', 'boe_id': '32016R0679', 'unit_text': None, 'norm_text': 'RGPD'},
         ],
     ),
     (
@@ -237,7 +243,7 @@ def test_boe_detecta_sentencia_y_norma_completa_sin_meter_articulos():
     assert resultado.references[2].unit_text is None
 
 
-def test_boe_detecta_oposicion_disposiciones_anexos_y_ue_no_soportado():
+def test_boe_detecta_oposicion_disposiciones_anexos_y_ue_a_eurlex():
     texto = (
         'Tema 3: Ley 39/2015, Ley 40/2015 y Real Decreto 203/2021. '
         'Estudiar arts. 13 y 14 de la Ley 39/2015; art. 6.1 LOPDGDD; '
@@ -251,7 +257,10 @@ def test_boe_detecta_oposicion_disposiciones_anexos_y_ue_no_soportado():
     assert 'arts. 13 y 14 de la Ley 39/2015' in textos
     assert 'art. 6.1 LOPDGDD' in textos
     assert 'anexo II del Real Decreto 311/2022' in textos
-    assert any(item.status == 'unsupported' for item in resultado.references)
+    # El Reglamento (UE) 2016/679 se resuelve a su página en EUR-Lex.
+    eu = [item for item in resultado.references if item.status == 'resolved-eurlex']
+    assert eu and eu[0].norm is not None
+    assert 'eur-lex.europa.eu' in eu[0].norm.url
 
 
 def test_boe_marca_ley_2_2023_sola_como_ambigua_pero_fecha_exacta_resuelve():
@@ -385,11 +394,12 @@ def test_boe_online_con_cliente_fixture_no_elije_candidatos_ambiguos():
 def test_boe_online_ignora_referencias_no_soportadas_sin_consultar_boe():
     resultado = enriquecer_boe(
         'La base jurídica es el art. 6 RGPD.',
-        BOEOptions(mode='online'),
+        BOEOptions(mode='online', include_unit_text=False),
         client=FakeBOEClient(),
     )
 
-    assert resultado.references[0].status == 'unsupported'
+    # Resuelto a EUR-Lex: no se consulta la API del BOE para esta referencia.
+    assert resultado.references[0].status == 'resolved-eurlex'
 
 
 def test_boe_unit_targets_rangos_sufijos_y_disposiciones():
@@ -427,17 +437,19 @@ def test_boe_review_explica_y_agrupa_referencias():
     sections = [item.section for item in review.items]
 
     assert review.summary.total_references == 3
-    assert review.summary.resolved == 1
+    # Constitución (BOE) y RGPD (EUR-Lex) quedan resueltas; la Ley 2/2023 ambigua.
+    assert review.summary.resolved == 2
     assert review.summary.review_required == 1
-    assert review.summary.unsupported == 1
-    assert sections == ['resolved', 'unsupported', 'review-required']
+    assert review.summary.unsupported == 0
+    assert sections == ['resolved', 'resolved', 'review-required']
     assert 'norma se identificó' in review.items[0].explanation.lower()
-    assert 'fuera del alcance BOE'.lower() in review.items[1].explanation.lower()
+    assert 'eur-lex' in review.items[1].explanation.lower()
     assert 'número y año' in review.items[2].explanation.lower()
     assert explicar_referencia_boe(resultado.references[2]) == review.items[2].explanation
     markdown = boe_report_to_markdown(resultado)
     assert '## Requieren revisión' in markdown
-    assert '## No soportadas' in markdown
+    # El RGPD queda resuelto con su enlace de EUR-Lex.
+    assert 'eur-lex.europa.eu' in markdown
 
 
 def test_boe_overrides_template_solo_incluye_pendientes():
@@ -471,6 +483,131 @@ def test_boe_html_y_paragraph_report():
     assert '> Referencias BOE sugeridas:' in paragraphs
     assert 'art. 24' in paragraphs
     assert 'artículo 42' in paragraphs
+
+
+def test_plain_text_ignora_status_boe():
+    body = (
+        '<?xml version="1.0" encoding="utf-8"?>'
+        '<response><status><code>200</code><text>ok</text></status>'
+        '<data>Artículo 14. Contenido íntegro del artículo.</data></response>'
+    )
+    assert _plain_text(body) == 'Artículo 14. Contenido íntegro del artículo.'
+
+
+def test_get_block_text_pide_xml_y_trae_texto(monkeypatch, tmp_path):
+    import urllib.request
+
+    captured = {}
+
+    class _FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return (
+                b'<response><status><code>200</code><text>ok</text></status>'
+                b'<data>Texto integro del bloque.</data></response>'
+            )
+
+    def _fake_urlopen(request, timeout=None):
+        captured['accept'] = request.get_header('Accept')
+        captured['url'] = request.full_url
+        return _FakeResponse()
+
+    monkeypatch.setattr(urllib.request, 'urlopen', _fake_urlopen)
+    client = BOEClient(BOEOptions(mode='online', cache_path=str(tmp_path)))
+    text = client.get_block_text('BOE-A-2015-10565', 'a14')
+
+    assert captured['accept'] == 'application/xml'
+    assert 'texto/bloque/a14' in captured['url']
+    assert text == 'Texto integro del bloque.'
+
+
+def test_boe_client_transport_inyectable(tmp_path):
+    calls = []
+
+    def transport(url, accept):
+        calls.append((url, accept))
+        return (
+            '<response><status><code>200</code><text>ok</text></status>'
+            '<data>Artículo 14. Texto real del artículo.</data></response>'
+        )
+
+    client = BOEClient(
+        BOEOptions(mode='online', cache_path=str(tmp_path)),
+        base_url='https://proxy.example',
+        transport=transport,
+    )
+    text = client.get_block_text('BOE-A-2015-10565', 'a14')
+
+    assert text == 'Artículo 14. Texto real del artículo.'
+    assert calls[0][0].startswith('https://proxy.example/datosabiertos/api/')
+    assert calls[0][0].endswith('/texto/bloque/a14')
+    assert calls[0][1] == 'application/xml'
+
+
+def test_fetch_eurlex_html_usa_host_correcto(monkeypatch):
+    import urllib.request
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return b'<html></html>'
+
+    urls: list[str] = []
+    monkeypatch.setattr(urllib.request, 'urlopen', lambda req, timeout=None: (urls.append(req.full_url), _Resp())[1])
+
+    # base_url oficial del BOE -> EUR-Lex se pide a su host oficial, no al BOE.
+    BOEClient(BOEOptions(mode='online')).fetch_eurlex_html('32016R0679')
+    assert urls[-1].startswith('https://eur-lex.europa.eu/legal-content/')
+    assert 'www.boe.es' not in urls[-1]
+
+    # Con transporte y base_url de proxy -> se enruta por el proxy.
+    got: list[str] = []
+    client = BOEClient(
+        BOEOptions(mode='online'),
+        base_url='https://proxy.example',
+        transport=lambda url, accept: (got.append(url), '<html></html>')[1],
+    )
+    client.fetch_eurlex_html('32016R0679')
+    assert got[-1].startswith('https://proxy.example/legal-content/')
+
+
+def test_is_safe_http_url_allowlist():
+    assert _is_safe_http_url('https://www.boe.es/buscar/act.php?id=BOE-A-1')
+    assert _is_safe_http_url('http://example.com')
+    assert _is_safe_http_url('/ruta/relativa')
+    assert not _is_safe_http_url('javascript:alert(1)')
+    assert not _is_safe_http_url('  javascript:alert(1)')
+    assert not _is_safe_http_url('data:text/html,<script>alert(1)</script>')
+    assert not _is_safe_http_url('java\tscript:alert(1)')
+    assert not _is_safe_http_url('java\nscript:alert(1)')
+
+
+def test_boe_html_report_neutraliza_esquema_peligroso():
+    overrides = {
+        'references': [
+            {
+                'text': 'PELIGRO',
+                'boe_id': 'BOE-A-9999',
+                'title': 'Referencia manipulada',
+                'url': 'javascript:alert(document.cookie)',
+            }
+        ]
+    }
+    resultado = detectar_referencias_boe('Véase PELIGRO en el expediente.', overrides=overrides)
+    html = boe_report_to_html(resultado)
+
+    assert 'href="javascript:' not in html
+    assert 'javascript:alert(document.cookie)' in html
 
 
 def test_boe_cli_review_html_paragraphs_y_overrides_template(capsys, tmp_path):
