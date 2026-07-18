@@ -2,16 +2,16 @@
   {
     "id": "recurso",
     "label": "Recurso administrativo",
-    "text": "A LA CONSEJERÍA COMPETENTE\n\nEl interesado interpone RECURSO DE ALZADA al amparo del art. 112 de la Ley 39/2015. Se ha vulnerado el derecho a relacionarse electrónicamente del art. 14 de la Ley 39/2015 (LPACAP), y la Administración incumplió el deber de resolver del art. 21 de la Ley 39/2015. El tratamiento de datos debe ajustarse al RGPD."
+    "text": "A LA CONSEJERÍA COMPETENTE\n\nEl interesado interpone RECURSO DE ALZADA al amparo del art. 112 de la Ley 39/2015. Se ha vulnerado el derecho a relacionarse electrónicamente del art. 14 de la Ley 39/2015 (LPACAP). El tratamiento de datos personales debe ajustarse al art. 6 del RGPD."
   },
   {
     "id": "contrato",
     "label": "Cláusula de contrato público",
-    "text": "CLÁUSULA. Régimen jurídico.\n\nEl contrato se rige por la LCSP. La adjudicación se efectúa con arreglo al art. 150 de la Ley 9/2017. En materia de protección de datos resultan de aplicación el RGPD y la Directiva 2000/31/CE de comercio electrónico."
+    "text": "CLÁUSULA. Régimen jurídico.\n\nEl contrato se rige por la LCSP. La adjudicación se efectúa con arreglo al art. 150 de la Ley 9/2017. En materia de protección de datos resulta de aplicación el art. 6 del RGPD, y en comercio electrónico el art. 5 de la Directiva 2000/31/CE."
   },
   {
     "id": "demanda",
     "label": "Demanda civil",
-    "text": "AL JUZGADO DE PRIMERA INSTANCIA\n\nDon [Procurador], en nombre de la parte actora, formulo DEMANDA DE JUICIO ORDINARIO en reclamación de cantidad, al amparo del art. 249 de la LEC. Interesa el recibimiento del pleito a prueba conforme al art. 429 de la LEC y la condena en costas del art. 394 de la LEC. El tratamiento de los datos personales aportados se rige por el RGPD."
+    "text": "AL JUZGADO DE PRIMERA INSTANCIA\n\nDon [Procurador], en nombre de la parte actora, formulo DEMANDA DE JUICIO ORDINARIO conforme al art. 249 de la LEC, con la condena en costas del art. 394 de la LEC. El tratamiento de los datos personales aportados se rige por el art. 6 del RGPD."
   }
 ]

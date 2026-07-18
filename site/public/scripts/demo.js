@@ -30,11 +30,21 @@ from legal_expand.types import BOEOptions
 
 
 def _apartados(texto):
-    # Separa el articulado en apartados numerados para que se lea bien.
-    partes = _re.split(r'\\s+(?=\\d{1,2}\\.\\s+[A-ZÁÉÍÓÚÑ])', texto.strip())
+    # Separa el articulado en apartados numerados para que se lea bien. El
+    # lookbehind (?<=\\.) evita partir el título "Artículo NN." (cuyo número no
+    # va tras un punto). Cada apartado destaca su número.
+    partes = _re.split(r'(?<=\\.)\\s+(?=\\d{1,2}\\.\\s+[A-ZÁÉÍÓÚÑ])', texto.strip())
     if len(partes) <= 1:
         return f'<p>{_html.escape(texto)}</p>'
-    return ''.join(f'<p>{_html.escape(p.strip())}</p>' for p in partes)
+    salida = []
+    for parte in partes:
+        parte = parte.strip()
+        m = _re.match(r'^(\\d{1,2})\\.\\s+(.*)$', parte, _re.S)
+        if m:
+            salida.append(f'<p class="ap"><b>{m.group(1)}.</b> {_html.escape(m.group(2))}</p>')
+        else:
+            salida.append(f'<p>{_html.escape(parte)}</p>')
+    return ''.join(salida)
 
 
 def _boe_report(text, proxy):

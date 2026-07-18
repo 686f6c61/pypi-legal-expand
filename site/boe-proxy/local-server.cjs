@@ -1,15 +1,19 @@
-// Proxy BOE para DESARROLLO LOCAL. Levanta un servidor en localhost que
-// reenvía las peticiones a la API del BOE añadiendo CORS, para poder probar
-// el modo online de la demo sin desplegar el Worker. No usar en producción.
+// Proxy para DESARROLLO LOCAL. Reenvía a las fuentes oficiales (BOE y EUR-Lex)
+// añadiendo CORS, para probar el modo online de la demo sin desplegar el Worker.
+// No usar en producción.
 //
-//   node boe-proxy/local-server.js   ->  http://localhost:8787
+//   node boe-proxy/local-server.cjs   ->  http://localhost:8787
 //
 const http = require('http');
 const https = require('https');
 
 const PORT = process.env.BOE_PROXY_PORT || 8787;
-const BOE_HOST = 'www.boe.es';
-const ALLOWED_PREFIX = '/datosabiertos/api/legislacion-consolidada';
+
+// Enrutado por prefijo de ruta -> host oficial permitido.
+const ROUTES = [
+  { prefix: '/datosabiertos/api/legislacion-consolidada', host: 'www.boe.es' },
+  { prefix: '/legal-content/', host: 'eur-lex.europa.eu' },
+];
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -24,19 +28,20 @@ http
       return res.end();
     }
     const url = new URL(req.url, 'http://localhost');
-    if (!url.pathname.startsWith(ALLOWED_PREFIX)) {
+    const route = ROUTES.find((r) => url.pathname.startsWith(r.prefix));
+    if (!route) {
       res.writeHead(403, CORS);
       return res.end('Path not allowed');
     }
-    // El endpoint de bloque del BOE solo acepta XML; el resto sirve JSON.
-    const accept = url.pathname.includes('/texto/bloque/')
-      ? 'application/xml'
-      : 'application/json, application/xml;q=0.9, */*;q=0.1';
+    // El endpoint de bloque del BOE solo acepta XML; EUR-Lex sirve HTML.
+    let accept = 'application/json, application/xml;q=0.9, */*;q=0.1';
+    if (url.pathname.includes('/texto/bloque/')) accept = 'application/xml';
+    else if (route.host === 'eur-lex.europa.eu') accept = 'text/html';
 
     https
       .get(
         {
-          host: BOE_HOST,
+          host: route.host,
           path: url.pathname + url.search,
           headers: { Accept: accept, 'User-Agent': 'legal-expand-local-proxy' },
         },
@@ -46,7 +51,7 @@ http
           upstream.on('end', () => {
             res.writeHead(upstream.statusCode || 200, {
               ...CORS,
-              'Content-Type': upstream.headers['content-type'] || 'application/json; charset=utf-8',
+              'Content-Type': upstream.headers['content-type'] || 'application/octet-stream',
             });
             res.end(Buffer.concat(chunks));
           });
@@ -58,5 +63,5 @@ http
       });
   })
   .listen(PORT, () => {
-    console.log('BOE local proxy en http://localhost:' + PORT);
+    console.log('Proxy local (BOE + EUR-Lex) en http://localhost:' + PORT);
   });
