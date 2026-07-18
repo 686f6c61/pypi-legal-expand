@@ -50,9 +50,16 @@
   },
   {
     "tag": "boe",
-    "title": "Referencias BOE",
-    "note": "Detecta normas y unidades, marca ambigüedad y separa lo no soportado (UE/RGPD).",
-    "input": "Según el art. 24 de la Constitución y el art. 6 del RGPD; véase la Ley 2/2023.",
-    "output": "resolved-url-only: art. 24 de la Constitución -> https://www.boe.es/buscar/act.php?id=BOE-A-1978-31229\nunsupported: art. 6 del RGPD\nambiguous: Ley 2/2023"
+    "title": "Cualquier norma del BOE",
+    "note": "Resuelve por número, offline, cualquier norma española del catálogo consolidado (no solo alias curados).",
+    "input": "La Ley 19/2013 de transparencia y el Real Decreto 1112/2018 de accesibilidad.",
+    "output": "resolved-url-only: Ley 19/2013 -> https://www.boe.es/buscar/act.php?id=BOE-A-2013-12887\nresolved-url-only: Real Decreto 1112/2018 -> https://www.boe.es/buscar/act.php?id=BOE-A-2018-12699"
+  },
+  {
+    "tag": "eurlex",
+    "title": "Normativa europea",
+    "note": "La normativa UE (RGPD, Reglamentos, Directivas) se enlaza a su página en EUR-Lex por su número CELEX.",
+    "input": "El art. 6 del RGPD y la Directiva 2000/31/CE de comercio electrónico.",
+    "output": "resolved-eurlex: art. 6 del RGPD -> https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32016R0679\nresolved-eurlex: Directiva 2000/31/CE -> https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32000L0031"
   }
 ]

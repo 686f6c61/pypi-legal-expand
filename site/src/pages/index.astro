@@ -27,6 +27,7 @@ const configCases = [
   { caso: 'Detectar y enlazar normas BOE (offline)', config: 'enriquecer_boe(texto, BOEOptions(mode="offline"))' },
   { caso: 'Resolver cualquier norma por su número', config: 'BOEOptions(use_boe_index=True)  # por defecto' },
   { caso: 'Traer el artículo completo del BOE', config: 'BOEOptions(mode="online", include_unit_text=True)' },
+  { caso: 'Enlazar normativa UE (RGPD, Directivas)', config: 'automático → EUR-Lex por número CELEX' },
   { caso: 'Procesar una carpeta entera', config: 'procesar_directorio("entrada", "salida")' },
 ];
 
@@ -117,8 +118,9 @@ legal-expand batch ./entrada ./salida`,
         <h1 id="hero-title">Las siglas del derecho español,<br /><mark>expandidas y auditadas.</mark></h1>
         <p class="hero-lede">
           legal-expand detecta siglas legales, las expande con su significado oficial, audita documentos y
-          resuelve referencias del BOE: enlaza cualquier norma española por su número y trae el texto
-          íntegro de sus artículos. Sin dependencias, con CLI y tres formatos de salida.
+          resuelve referencias del BOE: enlaza cualquier norma española por su número, trae el texto
+          íntegro de sus artículos y remite la normativa europea a EUR-Lex. Sin dependencias, con CLI y
+          tres formatos de salida.
         </p>
         <div class="hero-cta-row">
           <div class="install-line" role="group" aria-label="Comando de instalación">
@@ -148,70 +150,34 @@ legal-expand batch ./entrada ./salida`,
 
       <div class="demo-shell" id="demo-shell">
         <div class="demo-toolbar">
-          <div class="demo-tabs" role="tablist" aria-label="Modo de la demo">
-            <button role="tab" id="tab-expand" aria-selected="true" data-mode="expand">Expandir</button>
-            <button role="tab" id="tab-audit" aria-selected="false" data-mode="audit">Auditar</button>
-            <button role="tab" id="tab-glossary" aria-selected="false" data-mode="glossary">Glosario</button>
-            <button role="tab" id="tab-boe" aria-selected="false" data-mode="boe">BOE</button>
-          </div>
+          <span class="demo-toolbar-title">Elige un escrito jurídico</span>
           <span class="runtime-pill"><span class="runtime-dot is-loading" id="runtime-dot"></span><span id="runtime-status">Cargando Python…</span></span>
         </div>
 
-        <div class="demo-body">
-          <div class="demo-input">
-            <label class="demo-label" for="demo-text">Texto de entrada</label>
-            <textarea id="demo-text" class="demo-textarea" spellcheck="false">La AEAT gestiona el IVA y el IRPF según el art. 24 de la Constitución y la Ley 39/2015.</textarea>
+        <div class="demo-picker" id="demo-docs" role="tablist" aria-label="Escritos de ejemplo">
+          {examples.map((ex, i) => (
+            <button type="button" role="tab" data-doc={ex.id} aria-selected={i === 0 ? 'true' : 'false'}>{ex.label}</button>
+          ))}
+        </div>
 
-            <div class="demo-controls" id="demo-controls">
-              <div class="control-group" data-control="format">
-                <label class="demo-label" for="demo-format">Formato</label>
-                <select id="demo-format">
-                  <option value="plain">Texto plano</option>
-                  <option value="html">HTML</option>
-                  <option value="structured">Estructurado (JSON)</option>
-                </select>
-              </div>
-              <div class="control-group" data-control="boe-mode" hidden>
-                <label class="demo-label" for="demo-boe-mode">Nivel BOE</label>
-                <select id="demo-boe-mode">
-                  <option value="detect">Detectar y enlazar (offline)</option>
-                  <option value="confirm">Confirmar en el BOE (online)</option>
-                  <option value="full">Traer artículo completo (online)</option>
-                </select>
-              </div>
-              <label class="control-check"><input type="checkbox" id="demo-first" /> Solo primera aparición</label>
-            </div>
+        <div class="demo-input-row">
+          <textarea id="demo-text" class="demo-textarea" spellcheck="false" aria-label="Texto del escrito">{examples[0].text}</textarea>
+          <button class="run-button" id="demo-run" disabled>Analizar</button>
+        </div>
 
-            <div class="demo-actions">
-              <button class="run-button" id="demo-run" disabled>Ejecutar</button>
-              <button class="ghost-button" id="demo-copy-out" type="button">Copiar salida</button>
-            </div>
-
-            <div class="example-docs">
-              <span class="demo-label">Documentos de ejemplo</span>
-              <div class="doc-buttons" id="demo-docs">
-                {examples.map((ex) => (
-                  <button type="button" data-doc={ex.id}>{ex.label}</button>
-                ))}
-              </div>
-            </div>
-
-            <div class="example-chips" id="demo-examples" aria-label="Fragmentos rápidos">
-              <button data-example="El CE regula derechos; la CEE fue precursora de la UE.">Siglas solapadas</button>
-              <button data-example="La palabra ACTIVA contiene IVA pero no debe expandirse.">Límite de palabra</button>
-              <button data-example="Visita https://sede.AEAT.gob.es y escribe a x.AEAT@correo.es">Contexto protegido</button>
-              <button data-example="&lt;b&gt;Aviso&lt;/b&gt; de la AEAT">HTML seguro</button>
-            </div>
-          </div>
-
-          <div class="demo-output">
-            <div class="render-toggle" id="render-toggle" hidden>
-              <button data-render="code" aria-selected="true">Código</button>
-              <button data-render="preview" aria-selected="false">Vista</button>
-            </div>
-            <div class="output-surface" id="demo-output"><span class="placeholder">La salida aparecerá aquí en cuanto termine de cargar Python…</span></div>
-            <div class="output-meta" id="demo-meta"></div>
-          </div>
+        <div class="demo-results" id="demo-results">
+          <article class="result-block">
+            <h3><span class="result-num">1</span> Siglas traducidas</h3>
+            <div class="output-surface" id="out-expand"><span class="placeholder">Cargando Python…</span></div>
+          </article>
+          <article class="result-block">
+            <h3><span class="result-num">2</span> Contenido de los artículos <small>del BOE</small></h3>
+            <div class="output-surface" id="out-articles"><span class="placeholder">—</span></div>
+          </article>
+          <article class="result-block">
+            <h3><span class="result-num">3</span> Referencias y enlaces <small>BOE y EUR-Lex</small></h3>
+            <div class="output-surface" id="out-refs"><span class="placeholder">—</span></div>
+          </article>
         </div>
       </div>
     </section>
@@ -337,6 +303,7 @@ legal-expand batch ./entrada ./salida`,
         <tbody>
           <tr><th scope="row">Expandir · auditar · glosario</th><td><span class="state live">En vivo</span></td><td>El paquete real corre en el navegador con Pyodide; resultados idénticos al de tu máquina.</td></tr>
           <tr><th scope="row">Detección de referencias BOE</th><td><span class="state live">En vivo</span></td><td>Normas, unidades, ambigüedad y enlaces oficiales, sin red.</td></tr>
+          <tr><th scope="row">Normativa UE (RGPD, Directivas)</th><td><span class="state live">En vivo</span></td><td>Se resuelve a su página en EUR-Lex por número CELEX, sin red.</td></tr>
           <tr><th scope="row">Traer texto de artículos BOE</th><td><span class="state partial">Vía proxy</span></td><td>Requiere un pequeño proxy que sortee CORS; en tu máquina funciona directo con <code>--mode online</code>.</td></tr>
           <tr><th scope="row">Procesamiento por lotes</th><td><span class="state offline">Local</span></td><td>El comando <code>batch</code> recorre carpetas de tu sistema de archivos.</td></tr>
         </tbody>

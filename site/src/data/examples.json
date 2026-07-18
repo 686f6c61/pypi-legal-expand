@@ -1,17 +1,17 @@
 [
   {
-    "id": "demanda",
-    "label": "Demanda civil",
-    "text": "AL JUZGADO DE PRIMERA INSTANCIA\n\nDon [Procurador], en nombre y representación de la parte actora, según acredito mediante escritura de poder que acompaño, ante el Juzgado comparezco y, como mejor proceda en Derecho, DIGO:\n\nQue por medio del presente escrito formulo DEMANDA DE JUICIO ORDINARIO en reclamación de cantidad, al amparo de los arts. 249 y 399 de la LEC, frente a la entidad demandada.\n\nLa responsabilidad contractual invocada se funda en el art. 1101 del CC, en relación con el art. 1124 del CC. Los intereses se reclaman conforme al art. 1108 del CC. En materia de prueba se estará a lo dispuesto en la LEC.\n\nPor lo expuesto, SUPLICO al Juzgado que, previos los trámites legales, dicte sentencia por la que se estime íntegramente la demanda, con expresa imposición de costas conforme al art. 394 de la LEC."
-  },
-  {
     "id": "recurso",
     "label": "Recurso administrativo",
-    "text": "A LA CONSEJERÍA COMPETENTE\n\nEl interesado, cuyos datos constan en el expediente, al amparo del art. 112 de la Ley 39/2015, interpone RECURSO DE ALZADA contra la resolución notificada, con base en las siguientes ALEGACIONES:\n\nPRIMERA. Se ha vulnerado el derecho a relacionarse electrónicamente con la Administración reconocido en el art. 14 de la Ley 39/2015 (LPACAP). El régimen de la actuación administrativa debe ajustarse asimismo a la Ley 40/2015 (LRJSP).\n\nSEGUNDA. El tratamiento de datos personales realizado incumple el RGPD y la LOPDGDD, sin que conste la base jurídica exigible.\n\nTERCERA. Conforme al art. 21 de la LPACAP, la Administración estaba obligada a resolver de forma expresa dentro de plazo.\n\nPor lo expuesto, SOLICITO que se tenga por interpuesto el recurso y se anule la resolución impugnada."
+    "text": "A LA CONSEJERÍA COMPETENTE\n\nEl interesado interpone RECURSO DE ALZADA al amparo del art. 112 de la Ley 39/2015. Se ha vulnerado el derecho a relacionarse electrónicamente del art. 14 de la Ley 39/2015 (LPACAP), y la Administración incumplió el deber de resolver del art. 21 de la Ley 39/2015. El tratamiento de datos debe ajustarse al RGPD."
   },
   {
     "id": "contrato",
     "label": "Cláusula de contrato público",
-    "text": "CLÁUSULA. Régimen jurídico y prelación de fuentes.\n\nEl presente contrato tiene carácter administrativo y se rige por la LCSP y sus disposiciones de desarrollo. La adjudicación se efectuará con arreglo a los criterios previstos en el art. 150 de la Ley 9/2017.\n\nEl personal adscrito al servicio se somete al TREBEP (Real Decreto Legislativo 5/2015). En materia de protección de datos resultará de aplicación el RGPD y la LOPDGDD.\n\nEn lo no previsto en el pliego se estará a lo dispuesto en la LCSP y, supletoriamente, en el CC y en la LEC. Cualquier controversia se resolverá conforme a la Ley 29/1998, reguladora de la Jurisdicción Contencioso-administrativa."
+    "text": "CLÁUSULA. Régimen jurídico.\n\nEl contrato se rige por la LCSP. La adjudicación se efectúa con arreglo al art. 150 de la Ley 9/2017. En materia de protección de datos resultan de aplicación el RGPD y la Directiva 2000/31/CE de comercio electrónico."
+  },
+  {
+    "id": "demanda",
+    "label": "Demanda civil",
+    "text": "AL JUZGADO DE PRIMERA INSTANCIA\n\nDon [Procurador], en nombre de la parte actora, formulo DEMANDA DE JUICIO ORDINARIO en reclamación de cantidad, al amparo del art. 249 de la LEC. Interesa el recibimiento del pleito a prueba conforme al art. 429 de la LEC y la condena en costas del art. 394 de la LEC. El tratamiento de los datos personales aportados se rige por el RGPD."
   }
 ]

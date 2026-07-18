@@ -729,6 +729,99 @@ section {
   color: var(--surface);
 }
 
+/* ---------- demo simple (escrito -> siglas + artículos + enlaces) ---------- */
+
+.demo-toolbar-title { font-weight: 600; font-size: 14px; }
+
+.demo-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.demo-picker button {
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.demo-picker button[aria-selected="true"] { background: var(--forest); color: var(--surface); }
+
+.demo-input-row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  padding: 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-deep);
+}
+
+.demo-input-row .demo-textarea { flex: 1; min-height: 110px; }
+.demo-input-row .run-button { align-self: stretch; white-space: nowrap; }
+
+@media (max-width: 640px) {
+  .demo-input-row { flex-direction: column; }
+}
+
+.demo-results { display: grid; grid-template-columns: 1fr; }
+
+.result-block { padding: 18px; border-bottom: 1px solid var(--soft-line); }
+.result-block:last-child { border-bottom: none; }
+
+.result-block h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1rem;
+  margin: 0 0 12px;
+}
+
+.result-block h3 small { color: var(--muted); font-weight: 400; font-size: 12px; }
+
+.result-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--forest);
+  color: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.art-norm { display: block; font-weight: 400; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.art-body {
+  max-height: 260px;
+  overflow-y: auto;
+  margin-top: 8px;
+  padding-right: 6px;
+}
+.art-body p { margin: 0 0 8px; }
+.art-body p:last-child { margin-bottom: 0; }
+.output-surface details { margin-bottom: 8px; }
+.output-surface summary { padding: 4px 0; }
+
+.src {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+.src-boe { background: var(--forest); color: var(--surface); }
+.src-eurlex { background: var(--terracotta); color: var(--ink); }
+
 /* ---------- edge cases ---------- */
 
 .edge-section { padding-bottom: 64px; }
