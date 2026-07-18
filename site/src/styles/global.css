@@ -806,8 +806,15 @@ section {
   margin-top: 8px;
   padding-right: 6px;
 }
-.art-body p { margin: 0 0 8px; }
+.art-body p { margin: 0 0 12px; }
 .art-body p:last-child { margin-bottom: 0; }
+.art-body p.ap > b { color: var(--forest); margin-right: 4px; }
+.art-body .sub {
+  display: block;
+  margin: 5px 0 0 20px;
+  padding-left: 8px;
+  border-left: 2px solid var(--soft-line);
+}
 .output-surface details { margin-bottom: 8px; }
 .output-surface summary { padding: 4px 0; }
 

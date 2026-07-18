@@ -29,21 +29,33 @@ from legal_expand import expandir_siglas, enriquecer_boe
 from legal_expand.types import BOEOptions
 
 
+def _sub_apartados(cuerpo):
+    # Separa los sub-apartados con letra (a) b) c)) que siguen a ; : o . para
+    # que no se lean seguidos. No parte referencias como "las letras a) a c)".
+    subs = _re.split(r'(?<=[;:.])\\s+(?=[a-z]\\)\\s)', cuerpo)
+    if len(subs) <= 1:
+        return _html.escape(cuerpo)
+    partes = [_html.escape(subs[0].strip())]
+    for sub in subs[1:]:
+        partes.append(f'<span class="sub">{_html.escape(sub.strip())}</span>')
+    return ''.join(partes)
+
+
 def _apartados(texto):
     # Separa el articulado en apartados numerados para que se lea bien. El
     # lookbehind (?<=\\.) evita partir el título "Artículo NN." (cuyo número no
-    # va tras un punto). Cada apartado destaca su número.
+    # va tras un punto). Cada apartado destaca su número y sus sub-apartados.
     partes = _re.split(r'(?<=\\.)\\s+(?=\\d{1,2}\\.\\s+[A-ZÁÉÍÓÚÑ])', texto.strip())
     if len(partes) <= 1:
-        return f'<p>{_html.escape(texto)}</p>'
+        return f'<p>{_sub_apartados(texto.strip())}</p>'
     salida = []
     for parte in partes:
         parte = parte.strip()
         m = _re.match(r'^(\\d{1,2})\\.\\s+(.*)$', parte, _re.S)
         if m:
-            salida.append(f'<p class="ap"><b>{m.group(1)}.</b> {_html.escape(m.group(2))}</p>')
+            salida.append(f'<p class="ap"><b>{m.group(1)}.</b> {_sub_apartados(m.group(2))}</p>')
         else:
-            salida.append(f'<p>{_html.escape(parte)}</p>')
+            salida.append(f'<p>{_sub_apartados(parte)}</p>')
     return ''.join(salida)
 
 
