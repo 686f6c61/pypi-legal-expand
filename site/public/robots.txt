@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://legal-expand.686f6c61.dev/sitemap.xml

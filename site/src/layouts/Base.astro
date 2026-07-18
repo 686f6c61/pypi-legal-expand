@@ -12,6 +12,12 @@ const {
 } = Astro.props;
 
 const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : Astro.url.pathname;
+// Imagen de previsualización para redes (Open Graph / Twitter). Absoluta: las
+// tarjetas sociales exigen URL completa, no relativa.
+const ogImage = Astro.site
+  ? new URL('/og-image.png', Astro.site).href
+  : '/og-image.png';
+const ogImageAlt = 'legal-expand: siglas jurídicas españolas expandidas y auditadas, con el BOE y EUR-Lex.';
 // URL del proxy BOE (para el modo online). Se define con PUBLIC_BOE_PROXY.
 const boeProxy = import.meta.env.PUBLIC_BOE_PROXY || '';
 ---
@@ -24,6 +30,7 @@ const boeProxy = import.meta.env.PUBLIC_BOE_PROXY || '';
     <meta name="description" content={description} />
     <meta name="author" content="686f6c61" />
     <meta name="theme-color" content="#f1f0ea" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
     <link rel="canonical" href={canonical} />
 
     <meta property="og:type" content="website" />
@@ -32,10 +39,17 @@ const boeProxy = import.meta.env.PUBLIC_BOE_PROXY || '';
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={ogImageAlt} />
 
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content={ogImageAlt} />
 
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -57,6 +71,8 @@ const boeProxy = import.meta.env.PUBLIC_BOE_PROXY || '';
       programmingLanguage: 'Python',
       runtimePlatform: 'Python 3.9+',
       license: 'https://polyformproject.org/licenses/noncommercial/1.0.0/',
+      image: ogImage,
+      url: canonical,
       author: { '@type': 'Person', name: '686f6c61', url: 'https://github.com/686f6c61' },
     })} />
   </head>
