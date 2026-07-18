@@ -8,7 +8,7 @@ interface Props {
 
 const {
   title = 'legal-expand · Expansión de siglas jurídicas españolas',
-  description = 'Expande, audita y enlaza siglas jurídicas españolas. 646 siglas verificadas de RAE, BOE y DPEJ. Pruébalo en el navegador: el paquete real corre con Pyodide.',
+  description = 'Expande y audita siglas jurídicas españolas y resuelve las referencias legales del texto: enlaza la norma en el BOE o en EUR-Lex y trae el texto íntegro del artículo. Pruébalo en el navegador con Pyodide.',
 } = Astro.props;
 
 const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : Astro.url.pathname;
