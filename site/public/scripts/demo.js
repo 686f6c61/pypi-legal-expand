@@ -1,5 +1,5 @@
 // Demo interactiva: ejecuta el paquete real legal-expand en el navegador con
-// Pyodide. Flujo simple: el usuario elige un escrito jurídico y ve tres cosas —
+// Pyodide. Flujo simple: el usuario elige un escrito jurídico y ve tres cosas:
 // siglas traducidas, contenido de los artículos (BOE) y referencias con enlaces
 // (BOE y EUR-Lex).
 import { loadPyodide } from 'https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.mjs';
