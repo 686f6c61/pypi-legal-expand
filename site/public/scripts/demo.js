@@ -101,9 +101,14 @@ def le_case(text, proxy):
                 + '" target="_blank" rel="noopener">abrir</a></td></tr>'
             )
 
-    articulos_html = ''.join(articulos) or (
-        '<p class="muted">Este escrito no cita artículos con texto recuperable en el BOE.</p>'
-    )
+    if articulos:
+        articulos_html = ''.join(articulos)
+    elif proxy:
+        articulos_html = '<p class="muted">Este escrito no cita artículos con texto recuperable.</p>'
+    else:
+        articulos_html = ('<p class="muted">El texto íntegro de los artículos se trae en modo online: '
+                          'en esta demo pública requiere el proxy que sortea CORS; en tu máquina o con el '
+                          'CLI funciona directo. Las referencias y enlaces de abajo sí se resuelven sin red.</p>')
     refs_html = (
         '<table><thead><tr><th>Referencia</th><th>Norma</th><th>Fuente</th><th>Enlace</th></tr></thead>'
         '<tbody>' + ''.join(filas) + '</tbody></table>'
@@ -142,7 +147,7 @@ function selectDoc(button) {
   const list = window.__LEGAL_EXPAND_EXAMPLES__ || [];
   const example = list.find((e) => e.id === button.dataset.doc);
   document.querySelectorAll('#demo-docs button').forEach((b) =>
-    b.setAttribute('aria-selected', String(b === button)));
+    b.setAttribute('aria-pressed', String(b === button)));
   if (example) els.text.value = example.text;
   if (pyodide) runDemo();
 }

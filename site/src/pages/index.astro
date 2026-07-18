@@ -139,6 +139,26 @@ legal-expand batch ./entrada ./salida`,
       </div>
     </section>
 
+    <!-- CASO DE USO / PROBLEMA -->
+    <section class="usecase-band" aria-labelledby="usecase-title">
+      <div class="page-shell">
+        <p class="eyebrow">Para contextos de IA y profesionales</p>
+        <h2 id="usecase-title" class="usecase-heading">El derecho está lleno de siglas y remisiones. Aquí las tienes resueltas.</h2>
+        <div class="usecase-grid">
+          <article class="usecase-card">
+            <span class="usecase-num">01</span>
+            <h3>Mejor contexto, mejores respuestas</h3>
+            <p>Expande las siglas y trae el texto íntegro de la norma citada. Una IA (o una persona) responde con el artículo delante, no de memoria: menos alucinaciones y respuestas verificables.</p>
+          </article>
+          <article class="usecase-card">
+            <span class="usecase-num">02</span>
+            <h3>La norma, en el momento</h3>
+            <p>Nadie se sabe todo el ordenamiento. legal-expand pone el significado de cada sigla y el texto del artículo justo cuando lo necesitas, sin salir del documento ni buscar en el BOE.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <!-- DEMO -->
     <section class="demo-section page-shell" id="demo" aria-labelledby="demo-title">
       <div class="section-heading">
@@ -150,12 +170,12 @@ legal-expand batch ./entrada ./salida`,
       <div class="demo-shell" id="demo-shell">
         <div class="demo-toolbar">
           <span class="demo-toolbar-title">Elige un escrito jurídico</span>
-          <span class="runtime-pill"><span class="runtime-dot is-loading" id="runtime-dot"></span><span id="runtime-status">Cargando Python…</span></span>
+          <span class="runtime-pill" aria-live="polite"><span class="runtime-dot is-loading" id="runtime-dot"></span><span id="runtime-status">Cargando Python…</span></span>
         </div>
 
-        <div class="demo-picker" id="demo-docs" role="tablist" aria-label="Escritos de ejemplo">
+        <div class="demo-picker" id="demo-docs" role="group" aria-label="Escritos de ejemplo">
           {examples.map((ex, i) => (
-            <button type="button" role="tab" data-doc={ex.id} aria-selected={i === 0 ? 'true' : 'false'}>{ex.label}</button>
+            <button type="button" data-doc={ex.id} aria-pressed={i === 0 ? 'true' : 'false'}>{ex.label}</button>
           ))}
         </div>
 
@@ -164,7 +184,7 @@ legal-expand batch ./entrada ./salida`,
           <button class="run-button" id="demo-run" disabled>Analizar</button>
         </div>
 
-        <div class="demo-results" id="demo-results">
+        <div class="demo-results" id="demo-results" aria-live="polite">
           <article class="result-block">
             <h3><span class="result-num">1</span> Siglas traducidas</h3>
             <div class="output-surface" id="out-expand"><span class="placeholder">Cargando Python…</span></div>
@@ -272,6 +292,7 @@ legal-expand batch ./entrada ./salida`,
         <h2 id="config-title">Un caso, una línea.</h2>
         <p>Cada necesidad se cubre con una función o una opción. Estos son los casos más habituales.</p>
       </div>
+      <div class="table-scroll">
       <table class="config-table">
         <caption class="visually-hidden">Casos de uso y su configuración</caption>
         <thead>
@@ -286,6 +307,7 @@ legal-expand batch ./entrada ./salida`,
           ))}
         </tbody>
       </table>
+      </div>
     </section>
 
     <!-- BOUNDARY -->
@@ -294,6 +316,7 @@ legal-expand batch ./entrada ./salida`,
         <p class="eyebrow">Qué corre dónde</p>
         <h2 id="boundary-title">En el navegador y en tu máquina.</h2>
       </div>
+      <div class="table-scroll">
       <table class="boundary-table">
         <caption class="visually-hidden">Estado de capacidades en la demo web</caption>
         <thead>
@@ -307,6 +330,7 @@ legal-expand batch ./entrada ./salida`,
           <tr><th scope="row">Procesamiento por lotes</th><td><span class="state offline">Local</span></td><td>El comando <code>batch</code> recorre carpetas de tu sistema de archivos.</td></tr>
         </tbody>
       </table>
+      </div>
     </section>
 
     <!-- CTA -->
