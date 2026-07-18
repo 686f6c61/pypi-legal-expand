@@ -1,0 +1,319 @@
+---
+import Base from '../layouts/Base.astro';
+
+const version = '1.6.0';
+
+// Opciones de expansión (ExpansionOptions) — valores reales del paquete.
+const expansionOptions = [
+  ['format', "'plain' | 'html' | 'structured'", "'plain'", 'Formato de salida: texto con la expansión entre paréntesis, HTML semántico con <abbr>, o salida estructurada con posiciones y estadísticas.'],
+  ['force_expansion', 'bool | None', 'None', 'Fuerza (True) o desactiva (False) la expansión para esta llamada, por encima de la configuración global. None respeta la global.'],
+  ['preserve_case', 'bool', 'True', 'Mantiene mayúsculas/minúsculas de la variante detectada (AEAT, aeat, A.E.A.T.).'],
+  ['expand_only_first', 'bool', 'False', 'Expande solo la primera aparición de cada sigla; las siguientes se dejan intactas.'],
+  ['exclude', 'list[str]', '[]', 'Siglas que nunca se expanden (por ejemplo, ["BOE"]).'],
+  ['include', 'list[str] | None', 'None', 'Siglas que se expanden incluso si son palabras funcionales ("LA", "LO") normalmente omitidas.'],
+  ['auto_resolve_duplicates', 'bool', 'False', 'Resuelve automáticamente siglas con varios significados usando el contexto y la prioridad.'],
+  ['duplicate_resolution', 'dict[str, str]', '{}', 'Mapa manual sigla → significado para forzar la resolución de ambigüedades concretas.'],
+  ['custom_dictionaries', 'list[str]', '[]', 'Rutas a diccionarios propios (.json o .csv) que se añaden al base.'],
+];
+
+// Opciones del enriquecimiento BOE / EUR-Lex (BOEOptions).
+const boeOptions = [
+  ['mode', "'offline' | 'cache-first' | 'online'", "'offline'", 'offline no consulta red; online descarga el texto de los artículos; cache-first usa la caché y solo va a la red si falta.'],
+  ['include_unit_text', 'bool', 'True', 'Si es True y el modo consulta red, inserta el texto íntegro del artículo o anexo citado.'],
+  ['use_boe_index', 'bool', 'True', 'Resuelve cualquier norma española por su rango y número usando el índice local del catálogo consolidado (10.555 normas).'],
+  ['use_curated_aliases', 'bool', 'True', 'Usa los alias curados (LEC, CC, LECrim, Constitución…) además del índice.'],
+  ['infer_single_active_norm', 'bool', 'True', 'Si en un párrafo hay una sola norma inequívoca, asocia a ella las unidades citadas sin norma explícita.'],
+  ['timeout_seconds', 'float', '4.0', 'Tiempo máximo por petición a las fuentes oficiales.'],
+  ['max_results', 'int', '5', 'Máximo de candidatos a considerar al resolver una referencia.'],
+  ['max_retries', 'int', '2', 'Reintentos ante errores de red transitorios.'],
+  ['retry_backoff_seconds', 'float', '0.5', 'Espera base entre reintentos (crece de forma progresiva).'],
+  ['cache_path', 'str | None', 'None', 'Carpeta de caché para las respuestas de BOE/EUR-Lex (modos cache-first y online).'],
+  ['cache_ttl_days', 'int', '30', 'Días que se considera válida una respuesta cacheada.'],
+  ['overrides_path', 'str | None', 'None', 'Ruta a un JSON de referencias manuales para corregir ambigüedades sin tocar el código.'],
+];
+
+// Configuración global (GlobalConfig).
+const globalOptions = [
+  ['enabled', 'bool', 'True', 'Activa o desactiva la expansión en toda la aplicación.'],
+  ['default_options', 'ExpansionOptions | None', 'None', 'Opciones por defecto que se aplican cuando una llamada no las especifica.'],
+];
+
+// Subcomandos del CLI.
+const cliCommands = [
+  ['expand', 'Expande un archivo o la entrada estándar (stdin).'],
+  ['audit', 'Audita un texto sin modificarlo: conocidas, desconocidas, omitidas, repetidas.'],
+  ['glossary', 'Exporta el glosario de siglas de un texto (Markdown, CSV o JSON).'],
+  ['batch', 'Procesa una carpeta completa de forma recursiva (.txt, .md, .html).'],
+  ['boe', 'Detecta y enlaza referencias del BOE y EUR-Lex; con --mode online trae el articulado.'],
+  ['info', 'Muestra la metadata del diccionario (número de siglas, versión, fuentes).'],
+  ['benchmark', 'Mide el rendimiento de expansión sobre un texto.'],
+];
+
+const toc = [
+  ['intro', 'Introducción'],
+  ['expansion', 'Expansión de siglas'],
+  ['formatos', 'Formatos de salida'],
+  ['global', 'Configuración global'],
+  ['boe', 'Enriquecimiento BOE y EUR-Lex'],
+  ['diccionarios', 'Diccionarios personalizados'],
+  ['cli', 'Interfaz de línea de comandos'],
+];
+---
+
+<Base
+  title={`Guía técnica · legal-expand ${version}`}
+  description="Guía de configuración de legal-expand: opciones de expansión, formatos de salida, configuración global, enriquecimiento BOE y EUR-Lex, diccionarios personalizados y CLI."
+>
+  <header class="docs-header">
+    <a class="brand" href="/"><span>legal-expand</span><mark>{version}</mark></a>
+    <nav class="docs-topnav" aria-label="Navegación">
+      <a href="/">Inicio</a>
+      <a href="/#demo">Demo</a>
+      <a href="https://pypi.org/project/legal-expand/">PyPI</a>
+      <a href="https://github.com/686f6c61/pypi-legal-expand">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="docs-shell">
+    <aside class="docs-toc" aria-label="Índice">
+      <p class="toc-title">Guía técnica</p>
+      <ol>
+        {toc.map(([id, label]) => <li><a href={`#${id}`}>{label}</a></li>)}
+      </ol>
+    </aside>
+
+    <article class="docs-content">
+      <p class="docs-eyebrow">Referencia de configuración</p>
+      <h1>Configurar legal-expand</h1>
+      <p class="docs-lede">
+        Todo lo que puedes ajustar en el paquete: opciones de expansión, formatos, configuración global,
+        enriquecimiento del BOE y EUR-Lex, diccionarios propios y la CLI. Cero dependencias en tiempo de
+        ejecución, type hints completos y compatible con Python 3.9 o superior.
+      </p>
+
+      <section id="intro" aria-labelledby="intro-h">
+        <h2 id="intro-h">Introducción</h2>
+        <p>Instala el paquete desde PyPI:</p>
+        <pre><code>pip install legal-expand</code></pre>
+        <p>
+          La expansión básica no necesita configuración: <code>expandir_siglas(texto)</code> devuelve el texto con
+          cada sigla seguida de su significado entre paréntesis. A partir de ahí, cada función acepta un objeto de
+          opciones para ajustar su comportamiento.
+        </p>
+        <pre><code>{`from legal_expand import expandir_siglas, ExpansionOptions
+
+expandir_siglas('La AEAT revisa el IVA.')
+# 'La AEAT (Agencia Estatal de Administración Tributaria) revisa el IVA (Impuesto sobre el Valor Añadido).'`}</code></pre>
+      </section>
+
+      <section id="expansion" aria-labelledby="exp-h">
+        <h2 id="exp-h">Expansión de siglas</h2>
+        <p>
+          <code>ExpansionOptions</code> controla cómo se expanden las siglas. Se pasa como segundo argumento a
+          <code>expandir_siglas()</code> y funciones relacionadas.
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Opción</th><th>Tipo</th><th>Defecto</th><th>Descripción</th></tr></thead>
+            <tbody>
+              {expansionOptions.map(([name, type, def, desc]) => (
+                <tr><td><code>{name}</code></td><td><code>{type}</code></td><td><code>{def}</code></td><td>{desc}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <pre><code>{`from legal_expand import expandir_siglas, ExpansionOptions
+
+opts = ExpansionOptions(expand_only_first=True, exclude=['BOE'])
+expandir_siglas('AEAT y BOE. AEAT otra vez.', opts)`}</code></pre>
+      </section>
+
+      <section id="formatos" aria-labelledby="fmt-h">
+        <h2 id="fmt-h">Formatos de salida</h2>
+        <p>El campo <code>format</code> de <code>ExpansionOptions</code> admite tres valores:</p>
+        <ul>
+          <li><code>'plain'</code> — texto con la expansión entre paréntesis (por defecto).</li>
+          <li><code>'html'</code> — HTML semántico con etiquetas <code>&lt;abbr&gt;</code> y tooltips; el texto se escapa siempre.</li>
+          <li><code>'structured'</code> — objeto con el texto expandido, la lista de siglas (con posiciones) y estadísticas.</li>
+        </ul>
+        <pre><code>{`html = expandir_siglas('La AEAT publica el IVA.', ExpansionOptions(format='html'))
+datos = expandir_siglas('La AEAT publica el IVA.', ExpansionOptions(format='structured'))
+datos.stats.total_acronyms_found  # 2`}</code></pre>
+      </section>
+
+      <section id="global" aria-labelledby="glob-h">
+        <h2 id="glob-h">Configuración global</h2>
+        <p>
+          <code>configurar_globalmente(GlobalConfig(...))</code> fija opciones por defecto para toda la aplicación,
+          sin repetirlas en cada llamada. Recuerda resetear con <code>resetear_configuracion()</code> al terminar.
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Opción</th><th>Tipo</th><th>Defecto</th><th>Descripción</th></tr></thead>
+            <tbody>
+              {globalOptions.map(([name, type, def, desc]) => (
+                <tr><td><code>{name}</code></td><td><code>{type}</code></td><td><code>{def}</code></td><td>{desc}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <pre><code>{`from legal_expand import configurar_globalmente, resetear_configuracion, GlobalConfig, ExpansionOptions
+
+configurar_globalmente(GlobalConfig(
+    default_options=ExpansionOptions(format='html', expand_only_first=True),
+))
+# ... tu aplicación ...
+resetear_configuracion()`}</code></pre>
+      </section>
+
+      <section id="boe" aria-labelledby="boe-h">
+        <h2 id="boe-h">Enriquecimiento BOE y EUR-Lex</h2>
+        <p>
+          <code>enriquecer_boe(texto, BOEOptions(...))</code> detecta referencias normativas, enlaza cada norma
+          (BOE para España, EUR-Lex para la UE) y, en modo online, descarga el texto íntegro del artículo citado.
+          Es determinista: ante una cita ambigua no inventa, la marca para revisión.
+        </p>
+        <h3>Modos</h3>
+        <ul>
+          <li><code>'offline'</code> — no consulta red. Resuelve normas por alias curados y por el índice del catálogo, y la normativa UE a su página de EUR-Lex por número CELEX.</li>
+          <li><code>'online'</code> — además descarga el texto íntegro de los artículos (BOE y EUR-Lex).</li>
+          <li><code>'cache-first'</code> — usa la caché local y solo va a la red cuando falta.</li>
+        </ul>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Opción</th><th>Tipo</th><th>Defecto</th><th>Descripción</th></tr></thead>
+            <tbody>
+              {boeOptions.map(([name, type, def, desc]) => (
+                <tr><td><code>{name}</code></td><td><code>{type}</code></td><td><code>{def}</code></td><td>{desc}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <pre><code>{`from legal_expand import enriquecer_boe, BOEOptions
+
+informe = enriquecer_boe(
+    'El art. 14 de la Ley 39/2015 y el art. 6 del RGPD.',
+    BOEOptions(mode='online', include_unit_text=True),
+)
+for ref in informe.references:
+    print(ref.status, ref.original_text)`}</code></pre>
+      </section>
+
+      <section id="diccionarios" aria-labelledby="dic-h">
+        <h2 id="dic-h">Diccionarios personalizados</h2>
+        <p>
+          Añade siglas propias sin tocar el diccionario base pasando rutas en <code>custom_dictionaries</code>.
+          Se admite JSON (lista de entradas o un objeto con <code>entries</code>) y CSV con las mismas columnas.
+          Cada entrada necesita al menos la sigla y su significado; el resto es opcional.
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Campo</th><th>Alias admitidos</th><th>Descripción</th></tr></thead>
+            <tbody>
+              <tr><td><code>original</code></td><td><code>sigla</code>, <code>acronym</code></td><td>La sigla (obligatorio).</td></tr>
+              <tr><td><code>significado</code></td><td><code>meaning</code>, <code>expansion</code></td><td>El significado completo (obligatorio).</td></tr>
+              <tr><td><code>variants</code></td><td>—</td><td>Variantes adicionales; lista o valores separados por coma/punto y coma.</td></tr>
+              <tr><td><code>context_keywords</code></td><td><code>keywords</code></td><td>Palabras de contexto para desambiguar significados.</td></tr>
+              <tr><td><code>priority</code></td><td>—</td><td>Prioridad al resolver conflictos (por defecto 100).</td></tr>
+              <tr><td><code>source</code></td><td>—</td><td>Origen de la entrada (informativo).</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <pre><code>{`[
+  {"original": "LXP", "significado": "Legal Expand Python", "variants": ["L.X.P."], "priority": 200}
+]`}</code></pre>
+        <pre><code>{`from legal_expand import expandir_siglas, ExpansionOptions
+
+opts = ExpansionOptions(custom_dictionaries=['mis_siglas.json'])
+expandir_siglas('LXP junto a AEAT.', opts)`}</code></pre>
+      </section>
+
+      <section id="cli" aria-labelledby="cli-h">
+        <h2 id="cli-h">Interfaz de línea de comandos</h2>
+        <p>Al instalar el paquete queda disponible el comando <code>legal-expand</code>:</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Subcomando</th><th>Qué hace</th></tr></thead>
+            <tbody>
+              {cliCommands.map(([name, desc]) => (
+                <tr><td><code>legal-expand {name}</code></td><td>{desc}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <h3>Ejemplos</h3>
+        <pre><code>{`# Expandir un documento a HTML
+legal-expand expand documento.txt --format html --output salida.html
+
+# Auditar sin modificar el texto
+legal-expand audit escrito.txt --report-format markdown
+
+# BOE/EUR-Lex con el texto íntegro de los artículos
+legal-expand boe escrito.txt --mode online --report-format markdown
+
+# Procesar una carpeta completa
+legal-expand batch ./entrada ./salida --format html`}</code></pre>
+        <p class="docs-note">
+          Los flags <code>--include</code>/<code>--exclude</code> aceptan listas separadas por comas y se pueden repetir.
+          El subcomando <code>boe</code> admite <code>--mode</code>, <code>--overrides</code>, <code>--cache-path</code> y
+          <code>--no-unit-text</code>, entre otros; consulta <code>legal-expand boe --help</code>.
+        </p>
+      </section>
+
+      <p class="docs-back"><a href="/">← Volver a la página principal</a></p>
+    </article>
+  </div>
+
+  <style>
+    .docs-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; padding: 18px clamp(16px, 5vw, 48px);
+      border-bottom: 1.5px solid var(--line); background: var(--surface);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .docs-header .brand { font-family: var(--font-mono); font-weight: 600; text-decoration: none; color: var(--ink); }
+    .docs-header .brand mark { background: var(--forest); color: var(--paper); padding: 1px 6px; border-radius: 4px; margin-left: 6px; font-size: 0.85em; }
+    .docs-topnav { display: flex; gap: 18px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 0.9rem; }
+    .docs-topnav a { color: var(--muted); text-decoration: none; }
+    .docs-topnav a:hover { color: var(--forest); }
+
+    .docs-shell {
+      display: grid; grid-template-columns: 240px minmax(0, 1fr);
+      gap: clamp(24px, 5vw, 64px); max-width: var(--shell);
+      margin: 0 auto; padding: clamp(24px, 5vw, 56px) clamp(16px, 5vw, 48px);
+    }
+    .docs-toc { position: sticky; top: 88px; align-self: start; }
+    .docs-toc .toc-title { font-family: var(--font-mono); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 12px; }
+    .docs-toc ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+    .docs-toc li { counter-increment: toc; margin: 2px 0; }
+    .docs-toc a { display: block; padding: 6px 10px; text-decoration: none; color: var(--ink); font-size: 0.95rem; border-left: 2px solid transparent; box-shadow: none; }
+    .docs-toc a::before { content: counter(toc, decimal-leading-zero) '  '; color: var(--forest-soft); font-family: var(--font-mono); font-size: 0.85em; }
+    .docs-toc a:hover { color: var(--forest); border-left-color: var(--forest); }
+
+    .docs-content { min-width: 0; }
+    .docs-eyebrow { font-family: var(--font-mono); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--terracotta); margin: 0 0 8px; }
+    .docs-content h1 { font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 16px; }
+    .docs-lede { font-size: 1.15rem; color: var(--muted); line-height: 1.6; max-width: 68ch; margin: 0 0 8px; }
+    .docs-content section { margin-top: 48px; scroll-margin-top: 88px; padding-top: 24px; border-top: 1.5px solid var(--soft-line); }
+    .docs-content h2 { font-size: 1.6rem; letter-spacing: -0.01em; margin: 0 0 12px; }
+    .docs-content h3 { font-size: 1.15rem; margin: 24px 0 8px; }
+    .docs-content p, .docs-content li { line-height: 1.65; }
+    .docs-content ul { padding-left: 1.2rem; }
+    .docs-content li { margin: 6px 0; }
+    .docs-content table { width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 8px 0; }
+    .docs-content th, .docs-content td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--soft-line); vertical-align: top; }
+    .docs-content th { font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); border-bottom: 1.5px solid var(--line); }
+    .docs-content td code { white-space: nowrap; }
+    .docs-content pre { background: var(--ink); color: var(--paper); padding: 16px 18px; border-radius: var(--radius); overflow-x: auto; margin: 12px 0; }
+    .docs-content pre code { font-family: var(--font-mono); font-size: 0.88rem; line-height: 1.6; color: inherit; background: none; padding: 0; }
+    .docs-content :not(pre) > code { font-family: var(--font-mono); font-size: 0.9em; background: var(--surface-deep); padding: 1px 5px; border-radius: 4px; }
+    .docs-note { font-size: 0.95rem; color: var(--muted); background: var(--surface); border-left: 3px solid var(--forest-soft); padding: 12px 16px; border-radius: 0 var(--radius) var(--radius) 0; }
+    .docs-back { margin-top: 48px; }
+    .docs-back a { font-family: var(--font-mono); color: var(--forest); text-decoration: none; }
+
+    @media (max-width: 820px) {
+      .docs-shell { grid-template-columns: 1fr; }
+      .docs-toc { position: static; border-bottom: 1.5px solid var(--soft-line); padding-bottom: 16px; }
+    }
+  </style>
+</Base>
