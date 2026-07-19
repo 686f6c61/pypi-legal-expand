@@ -61,6 +61,16 @@ const boeProxy = import.meta.env.PUBLIC_BOE_PROXY || '';
 
     <title>{title}</title>
 
+    <!-- Google tag (gtag.js). is:inline evita que Astro lo empaquete. -->
+    <script is:inline async src="https://www.googletagmanager.com/gtag/js?id=G-R6VNCT9218"></script>
+    <script is:inline>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-R6VNCT9218');
+    </script>
+
     <script type="application/ld+json" set:html={JSON.stringify({
       '@context': 'https://schema.org',
       '@type': 'SoftwareSourceCode',
